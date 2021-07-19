@@ -1,7 +1,64 @@
-<?xml-stylesheet href="style.css" type="text/css"?>
-<svg id="container" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" xmlns:xlink="http://www.w3.org/1999/xlink">
+<svg id="container" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="980" height="600" viewBox="0 0 980 600">
 	<style type="text/css">
 		<![CDATA[
+			.hollow {
+				fill: var(--fill, #ffffff);
+				stroke: var(--icon, #aed581);
+				stroke-width: 2;
+			}
+			.solid {
+				fill: var(--icon, #aed581);
+				stroke: var(--icon, #aed581);
+				stroke-width: 0.2;
+			}
+			.outline {
+				fill: var(--fill, #ffffff);
+				stroke: var(--outer, #00bb66);
+				stroke-width: var(--outer-width, 7);
+			}
+			.mon {
+				--icon: #101010;
+				--fill: #aed581;
+				--outer: #aed581;
+			}
+			.mof {
+				--icon: #aed581;
+				--fill: #101010;
+				--outer: #aed581;
+			}
+			.delete {
+				--icon: #101010;
+				--fill: #e57373;
+				--outer: #e57373;
+			}
+			.clone {
+				--icon: #101010;
+				--fill: #81d4fa;
+				--outer: #81d4fa;
+			}
+			.icon {
+				transform	: scale(0.4);
+			}
+			.link {
+				stroke		: #4fc3f7;
+				stroke-width	: 10;
+			}
+			.box {
+				rx		: 6px;
+				fill		: #505050;
+				stroke		: #ddddff;
+				stroke-width	: 4;
+				fill-opacity	: 1;
+			}
+			.gridline {
+				stroke		: #ddddff;
+				stroke-width	: 2;
+			}
+			.dock {
+				rx		: 8px;
+				fill		: #505050;
+				fill-opacity	: 1;
+			}
 		]]>
 	</style>
 	<rect x="0" y="0" width="980" height="600" rx="10" fill="#101010"></rect>
