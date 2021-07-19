@@ -1,5 +1,9 @@
 <?xml-stylesheet href="style.css" type="text/css"?>
 <svg id="container" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" xmlns:xlink="http://www.w3.org/1999/xlink">
+	<style type="text/css">
+		<![CDATA[
+		]]>
+	</style>
 	<rect x="0" y="0" width="980" height="600" rx="10" fill="#101010"></rect>
 	<g id="grid"></g>
 	<g id="groups"><rect id="dockPanel" x="0" y="0" width="600" height="100" class="dock"></rect></g>
