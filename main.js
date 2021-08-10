@@ -1,5 +1,6 @@
 import grid from './grid.js';
 import model from './model.js';
+import drawFactory from './draw.js';
 var root = document.getElementById('container');
 initHandlers(root)
 var nodeGroup = document.getElementById('nodes');
@@ -25,6 +26,8 @@ var icons = [
 	'loadbalancer',
 	'server'
 ];
+
+var draw = drawFactory(model, grid);
 init();
 
 // attach handlers
@@ -67,6 +70,14 @@ function keyDown(event) {
 			currentNode.setAttributeNS(null, "class", "clone");
 		}
 	}
+	if(currentKey == 'Shift') {
+		draw.showGrid();
+		/*
+		if(currentNode) {
+			currentNode.setAttributeNS(null, "class", "clone");
+		}
+		*/
+	}
 	console.log('[ KEYDOWN ]: ' + event.key);
 }
 
@@ -83,6 +94,9 @@ function keyUp(event) {
 			currentNode.setAttributeNS(null, "class", "mon");
 		}
 	}
+	if(currentKey == 'Shift') {
+		draw.hideGrid();
+	}
 	currentKey = null;
 }
 
@@ -92,7 +106,7 @@ function init() {
 	let myList = [];
 	let x = 0;
 	icons.forEach((icon) => {
-		myList.push(createNode(icon, {x: x++, y: 0}, 'dock'));
+		myList.push(draw.createNode(icon, {x: x++, y: 0}, 'dock'));
 	});
 
 	// calculate diff x/y on cells
@@ -117,6 +131,7 @@ function init() {
 		}
 	});
 	console.log(JSON.stringify(grid.getCoord({x: 3, y: 3}), null, "\t"));
+	// rework group into draw
 	createGroup({
 		start	: {x: x1, y: y1},
 		end	: {x: x2, y: y2}
@@ -132,30 +147,29 @@ function start(evt) {
 			x: currentNode.getAttribute("x"),
 			y: currentNode.getAttribute("y")
 		};
+		let nearestPos = grid.getNearestPoint(currentPos);
+
 		// check tags
 		if(nodes[selectedNode].tag == "dock") {
 			if(currentButton == 2) { // dock - create new node
-				selectedNode = createNode(nodes[selectedNode].type, currentPos, 'notdock');
-				createPoint(currentPos);
+				draw.showPoint(nearestPos);
+				selectedNode = draw.createNode(nodes[selectedNode].type, currentPos, 'notdock');
 				console.log('[ DOCK ]: doing dock things onmousedown');
 			}
 		} else {
 			if(currentButton == 0) { // start line drag
 				console.log('Start event: ' + evt + ' button: ' + currentButton + ' nodepos: ' + currentPos.x + ':' + currentPos.y);
-				createLink(currentPos);
+				currentLine = draw.createLink(currentPos);
 			}
-			if(currentButton == 2) { // dock - create new node
+			if(currentButton == 2) { // node on canvas
 				if(!(evt.altKey && evt.ctrlKey)) { // rework logic for simpler events
+					draw.showPoint(nearestPos);
 					if(evt.altKey) { // works pretty well
 						deleteNode(selectedNode);
 					} else {
 						if(evt.ctrlKey) { // works pretty well
-							selectedNode = createNode(nodes[selectedNode].type, currentPos, 'clone');
-							createPoint(currentPos);
+							selectedNode = draw.createNode(nodes[selectedNode].type, currentPos, 'clone');
 							console.log('[ CLONE ]: cloning current NODE with CTRL+Right-Click');
-						} else {
-							deletePoint();
-							createPoint(currentPos);
 						}
 					}
 				}
@@ -185,7 +199,7 @@ function update(evt) {
 						x2: evt.clientX,
 						y2: evt.clientY
 					});
-					frameCounter++;
+					//frameCounter++;
 				}
 			}
 			if(currentButton == 2) { // right button
@@ -194,11 +208,9 @@ function update(evt) {
 					y: evt.clientY
 				};
 				updateNode(selectedNode, currentPos);
-				frameCounter++;
+				// point should self update? yes
 				let nearestPos = grid.getNearestPoint(currentPos);
-				if(!grid.isSamePos(selectedPoint, nearestPos)) {
-					updatePoint(nearestPos);
-				}
+				draw.updatePoint(nearestPos);
 			}
 		}
 	}
@@ -206,34 +218,32 @@ function update(evt) {
 
 // finish line
 function end(evt) {
+	console.log('[END]');
 	if(selectedNode) {
 		if((currentButton == 0) && currentLine) {
 			if(currentNode) {
-				// commit link to model
 				let dst = currentNode.getAttribute("id");
-				addLink(selectedNode, dst);
-				console.log('[ END ] frameCounter: ' + frameCounter + ' End event: ' + evt);
+				draw.addLink(selectedNode, dst);
 			}
 			// delete 'active' line
-			deleteLink();
+			draw.deleteLink(currentLine);
+			currentLine = null;
 		}
-		if((currentButton == 2) && selectedPoint) {
+		//if((currentButton == 2) && selectedPoint) {
+		if((currentButton == 2)) {
 			// update + render
 			let pos = grid.getNearestPoint({
 				x: evt.clientX,
 				y: evt.clientY
 			});
 			updateNode(selectedNode, pos);
-			commitNode(selectedNode, pos); // duplicate?
-			console.log('[ UPDATE ]: frameCounter ' + frameCounter + ': ' + JSON.stringify(nodes[selectedNode], null, "\t"));
-			// delete 'active' grid point
-			// grid.point.delete();
-			deletePoint();
+			commitNode(selectedNode, pos); // duplicate? have it also update in draw
+			//draw.hidePoint();
 		}
 	}
+	draw.hidePoint();
 	selectedNode = null;
 	currentButton = null;
-	frameCounter = 0;
 }
 
 // mouseover
@@ -288,18 +298,6 @@ function createGroup(spec) {
 	}));
 }
 
-// create node
-function createNode(kind, pos, tag) {
-	let id = model.createNode(kind, pos, tag);
-	nodeGroup.appendChild(createUse(kind, {
-		"id"	: id,
-		"x"	: grid.getCoord(pos).x,
-		"y"	: grid.getCoord(pos).y,
-		"class"	: 'mof'
-	}));
-	return id;
-}
-
 // delete node
 function deleteNode(id) {
 	Object.keys(nodes[id].links).forEach((link) => {
@@ -309,94 +307,6 @@ function deleteNode(id) {
 	model.deleteNode(id);
 	currentNode = null;
 	selectedNode = null;
-}
-
-// create point
-function createPoint(pos) { // change to show/hide mechanism
-	let rect = root.getBoundingClientRect(); // get the svg bounding rectangle
-	console.log('[ CREATE ]: point { ' + rect.width + ':' + rect.height + ' }');
-	gridGroup.appendChild(createShape('line', {
-		"id"		: 'vline',
-		"x1"		: pos.x,
-		"y1"		: 0,
-		"x2"		: pos.x,
-		"y2"		: rect.height,
-		"class"		: 'gridline'
-	}));
-	gridGroup.appendChild(createShape('line', {
-		"id"		: 'hline',
-		"x1"		: 0,
-		"y1"		: pos.y,
-		"x2"		: rect.width,
-		"y2"		: pos.y,
-		"class"		: 'gridline'
-	}));
-	gridGroup.appendChild(createShape('rect', {
-		"id"		: 'box',
-		"x"		: pos.x - 50,
-		"y"		: pos.y - 50,
-		"width"		: 100,
-		"height"	: 100,
-		"class"		: 'box'
-	}));
-	selectedPoint = {
-		x: pos.x,
-		y: pos.y
-	};
-}
-
-// update point
-function updatePoint(pos) {
-	let box = document.getElementById('box');
-	assignAttr(box, {
-		x: pos.x - (box.getAttribute("width") / 2),
-		y: pos.y - (box.getAttribute("height") / 2)
-	});
-	let vline = document.getElementById('vline');
-	assignAttr(vline, {
-		x1: pos.x,
-		x2: pos.x
-	});
-	let hline = document.getElementById('hline');
-	assignAttr(hline, {
-		y1: pos.y,
-		y2: pos.y
-	});
-	selectedPoint = {
-		x: pos.x,
-		y: pos.y
-	};
-}
-
-// delete point
-function deletePoint() {
-	if(selectedPoint) {
-		gridGroup.removeChild(document.getElementById('box'));
-		gridGroup.removeChild(document.getElementById('vline'));
-		gridGroup.removeChild(document.getElementById('hline'));
-		selectedPoint = null;
-	}
-}
-
-// create link
-function createLink(pos) {
-	let id = Math.random() * 10;
-	linkGroup.appendChild(createShape('line', {
-		"id"		: id,
-		"x1"		: pos.x,
-		"y1"		: pos.y,
-		"x2"		: pos.x,
-		"y2"		: pos.y,
-		"class"		: "link"
-	}));
-	currentLine = id;
-	frameCounter = 0;
-}
-
-// delete link
-function deleteLink() {
-	linkGroup.removeChild(document.getElementById(currentLine));
-	currentLine = null;
 }
 
 // commit node
@@ -429,40 +339,6 @@ function updateNode(id, pos) {
 			}
 		}
 	}
-}
-
-function addLink(src, dst) {
-	let id = model.createLink(src, dst);
-	if(id) {
-		let srcPos = {
-			x: document.getElementById(src).getAttribute("x"),
-			y: document.getElementById(src).getAttribute("y")
-		};
-		console.log('addLink: SRC ' + srcPos.x + ':' + srcPos.y);
-		let dstPos = {
-			x: document.getElementById(dst).getAttribute("x"),
-			y: document.getElementById(dst).getAttribute("y")
-		};
-		console.log('addLink: DST ' + dstPos.x + ':' + dstPos.y);
-		linkGroup.appendChild(createShape('line', {
-			"id"		: id,
-			"x1"		: srcPos.x,
-			"y1"		: srcPos.y,
-			"x2"		: dstPos.x,
-			"y2"		: dstPos.y,
-			"class"		: 'link'
-		}));
-	}
-}
-
-// create <use>
-function createUse(type, attributes) {
-	var aUse = document.createElementNS('http://www.w3.org/2000/svg', 'use');
-	aUse.setAttributeNS('http://www.w3.org/1999/xlink','xlink:href','#' + type);
-	for(let key in attributes) {
-		aUse.setAttribute(key, attributes[key]);
-	}
-	return aUse;
 }
 
 // create shape

@@ -19,6 +19,20 @@ class Grid {
 			"y" : (point.y * this.state.gap.y) + this.state.offset.y
 		};
 	}
+	getGroupCoord(point) {
+		let gap = {
+			x: this.state.gap.x,
+			y: this.state.gap.y
+		};
+		let offset = {
+			x: this.state.offset.x - (gap.x / 2),
+			y: this.state.offset.y - (gap.y / 2)
+		};
+		return {
+			"x" : (point.x * gap.x) + offset.x,
+			"y" : (point.y * gap.y) + offset.y
+		};
+	}
 	isSamePos(point1, point2) {
 	        if(point1.x == point2.x && point1.y == point2.y) {
 	                return true;
