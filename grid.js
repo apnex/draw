@@ -46,6 +46,20 @@ class Grid {
 			y: (Math.round((pos.y - this.state.offset.y) / this.state.gap.y) * this.state.gap.y) + this.state.offset.y
 		};
 	}
+	getNearestGroupPoint(pos) {
+		let gap = {
+			x: this.state.gap.x,
+			y: this.state.gap.y
+		};
+		let offset = {
+			x: this.state.offset.x - (gap.x / 2),
+			y: this.state.offset.y - (gap.y / 2)
+		};
+		return {
+			x: (Math.round((pos.x - offset.x) / gap.x) * gap.x) + offset.x,
+			y: (Math.round((pos.y - offset.y) / gap.y) * gap.y) + offset.y
+		};
+	}
 }
 
 // create instance

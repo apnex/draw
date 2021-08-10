@@ -33,6 +33,7 @@ class Draw {
 		console.log('GRIDSIZE: ' + gridSize.x + ':' + gridSize.y);
 
 		// create and hide grid points
+		// move this to a layer object
 		this.hideGrid();
 		let groups = this.state.groups;
 		for(let y = 0; y < gridSize.y; y++) {
@@ -47,9 +48,13 @@ class Draw {
 			}
 		}
 
-		// create and hide point
+		// create and hide node point
 		this.hidePoint();
 		this.createPoint({x: 0, y: 0});
+
+		// create and hide group point
+		//this.hideGroupPoint();
+		this.createGroupPoint({x: 0, y: 0});
 	}
 	addLink(src, dst) {
 		let model = this.state.model;
@@ -185,6 +190,37 @@ class Draw {
 			this.state.currentPoint.x = nearestPos.x;
 			this.state.currentPoint.y = nearestPos.y;
 		}
+	}
+	createGroupPoint(pos) {
+		let layout = this.state.layout;
+		let groups = this.state.groups;
+		console.log('[ CREATE ]: GroupPoint');
+		this.state.currentGroupPoint = {
+			x: pos.x,
+			y: pos.y
+		};
+		groups.grid.appendChild(this.createShape('circle', {
+			"id"	: 'groupPoint',
+			"r"	: 10,
+			"cx"	: layout.getGroupCoord(pos).x,
+			"cy"	: layout.getGroupCoord(pos).y,
+			"class"	: 'box'
+		}));
+	}
+	updateGroupPoint(pos) {
+		let layout = this.state.layout;
+		let nearestPos = layout.getNearestGroupPoint(pos);
+		//let currentPos = this.state.currentPoint;
+		//if(!layout.isSamePos(currentPos, nearestPos)) {
+			//console.log('[ UPDATE POINT ]: ' + nearestPos);
+		let point = document.getElementById('groupPoint');
+		this.assignAttr(point, {
+			cx: nearestPos.x,
+			cy: nearestPos.y
+		});
+		this.state.currentGroupPoint.x = nearestPos.x;
+		this.state.currentGroupPoint.y = nearestPos.y;
+		//}
 	}
 	createShape(type, attributes) {
 		let shape = document.createElementNS('http://www.w3.org/2000/svg', type);

@@ -188,7 +188,11 @@ function start(evt) {
 // update line
 function update(evt) {
 //	if(selectedNode && currentButton) { // only update if a node and button is selected
-	if(selectedNode) { // only update if a node and button is selected
+	let currentPos = {
+		x: evt.clientX,
+		y: evt.clientY
+	};
+	if(selectedNode) {
 		if(nodes[selectedNode].tag == "dock") { // check if dock
 			// do dock things
 		} else { // not the dock
@@ -203,15 +207,22 @@ function update(evt) {
 				}
 			}
 			if(currentButton == 2) { // right button
+				/*
 				let currentPos = {
 					x: evt.clientX,
 					y: evt.clientY
 				};
+				*/
 				updateNode(selectedNode, currentPos);
 				// point should self update? yes
 				let nearestPos = grid.getNearestPoint(currentPos);
 				draw.updatePoint(nearestPos);
 			}
+		}
+	} else {
+		if(evt.shiftKey) {
+			console.log('No node selected - updating point');
+			draw.updateGroupPoint(currentPos);
 		}
 	}
 }
