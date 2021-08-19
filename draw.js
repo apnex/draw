@@ -113,6 +113,45 @@ class Draw {
 		}));
 		return id;
 	}
+	updateNode(id, pos) {
+		let nodes = this.state.model.nodes;
+		let links = this.state.model.links;
+		if(nodes[id]) {
+			// render updated node
+			let node = document.getElementById(id);
+			this.assignAttr(node, {
+				x: pos.x,
+				y: pos.y
+			});
+			// render update links on node
+			for(let linkId in nodes[id].links) {
+				let link = document.getElementById(linkId);
+				if(links[linkId].src == id) {
+					this.assignAttr(link, {
+						x1: pos.x,
+						y1: pos.y
+					});
+				} else {
+					this.assignAttr(link, {
+						x2: pos.x,
+						y2: pos.y
+					});
+				}
+			}
+		}
+	}
+	deleteNode(id) {
+		let model = this.state.model;
+		let groups = this.state.groups;
+		let nodes = model.nodes;
+		Object.keys(nodes[id].links).forEach((link) => {
+			groups.links.removeChild(document.getElementById(link));
+		});
+		groups.nodes.removeChild(document.getElementById(id));
+		model.deleteNode(id);
+		//currentNode = null;
+		//selectedNode = null;
+	}
 	showGrid() {
 		let groups = this.state.groups;
 		groups.grid.setAttribute('visibility', 'visible');
@@ -132,7 +171,7 @@ class Draw {
 		let groups = this.state.groups;
 		groups.point.setAttribute('visibility', 'hidden');
 	}
-	createPoint(pos) { // change to show/hide mechanism
+	createPoint(pos) { // change to show/hide mechanism - turn into a managed widget with self.functions()
 		let root = document.getElementById('container');
 		let rect = root.getBoundingClientRect();
 		let groups = this.state.groups;

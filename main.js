@@ -15,7 +15,6 @@ var currentKey = null;
 var currentPoint = null;
 var selectedNode = null;
 var selectedPoint = null;
-var frameCounter = 0;
 var nodes = model.nodes;
 var links = model.links;
 var icons = [
@@ -140,54 +139,66 @@ function init() {
 
 // mousedown
 function start(evt) {
-	if((!currentButton) && currentNode) {
+	// logic
+	// -> ifCurrentButtonAlreadyDown
+	// -> ifLayer (shift, alt, ctrl)
+	if(!currentButton) {
 		currentButton = evt.button;
-		selectedNode = currentNode.id;
-		let currentPos = {
-			x: currentNode.getAttribute("x"),
-			y: currentNode.getAttribute("y")
-		};
-		let nearestPos = grid.getNearestPoint(currentPos);
-
-		// check tags
-		if(nodes[selectedNode].tag == "dock") {
-			if(currentButton == 2) { // dock - create new node
-				draw.showPoint(nearestPos);
-				selectedNode = draw.createNode(nodes[selectedNode].type, currentPos, 'notdock');
-				console.log('[ DOCK ]: doing dock things onmousedown');
-			}
-		} else {
-			if(currentButton == 0) { // start line drag
-				console.log('Start event: ' + evt + ' button: ' + currentButton + ' nodepos: ' + currentPos.x + ':' + currentPos.y);
-				currentLine = draw.createLink(currentPos);
-			}
-			if(currentButton == 2) { // node on canvas
-				if(!(evt.altKey && evt.ctrlKey)) { // rework logic for simpler events
+		if(currentNode) {
+			selectedNode = currentNode.id;
+			let currentPos = {
+				x: currentNode.getAttribute("x"),
+				y: currentNode.getAttribute("y")
+			};
+			let nearestPos = grid.getNearestPoint(currentPos);
+			// check tags
+			if(nodes[selectedNode].tag == "dock") {
+				if(currentButton == 2) { // dock - create new node
 					draw.showPoint(nearestPos);
-					if(evt.altKey) { // works pretty well
-						deleteNode(selectedNode);
+					selectedNode = draw.createNode(nodes[selectedNode].type, currentPos, 'notdock');
+					console.log('[ DOCK ]: doing dock things onmousedown');
+				}
+			} else {
+				if(currentButton == 0) { // start line drag
+					console.log('Start event: ' + evt + ' button: ' + currentButton + ' nodepos: ' + currentPos.x + ':' + currentPos.y);
+					if(evt.shiftKey) {
+						console.log('[ SHIFT IS PRESSED ]');
 					} else {
-						if(evt.ctrlKey) { // works pretty well
-							selectedNode = draw.createNode(nodes[selectedNode].type, currentPos, 'clone');
-							console.log('[ CLONE ]: cloning current NODE with CTRL+Right-Click');
+						currentLine = draw.createLink(currentPos);
+					}
+				}
+				if(currentButton == 2) { // node on canvas
+					if(!(evt.altKey && evt.ctrlKey)) { // rework logic for simpler events
+						draw.showPoint(nearestPos);
+						if(evt.altKey) {
+							draw.deleteNode(selectedNode);
+							selectedNode = null;
+							currentNode = null;
+						} else {
+							if(evt.ctrlKey) {
+								selectedNode = draw.createNode(nodes[selectedNode].type, currentPos, 'clone');
+								console.log('[ CLONE ]: cloning current NODE with CTRL+Right-Click');
+							}
 						}
 					}
 				}
 			}
+		} else { // DEBUG BOTH CLICKS
+			if(currentButton == 0) { // start line drag
+				console.log('[[ EXISTING BUTTON ]]: LEFT already selected');
+			}
+			if(currentButton == 2) { // start grid box drag
+				console.log('[[ EXISTING BUTTON ]]: RIGHT already selected');
+			}
 		}
-	} else { // DEBUG BOTH CLICKS
-		if(currentButton == 0) { // start line drag
-			console.log('[[ EXISTING BUTTON ]]: LEFT already selected');
-		}
-		if(currentButton == 2) { // start grid box drag
-			console.log('[[ EXISTING BUTTON ]]: RIGHT already selected');
-		}
+	} else {
+		// maybe??
+		currentButton = null;
 	}
 }
 
 // update line
 function update(evt) {
-//	if(selectedNode && currentButton) { // only update if a node and button is selected
 	let currentPos = {
 		x: evt.clientX,
 		y: evt.clientY
@@ -197,32 +208,30 @@ function update(evt) {
 			// do dock things
 		} else { // not the dock
 			if(currentButton == 0) { // left button
+				// draw.updateLine
 				if(currentLine) { // mode to updateLink
 					let line = document.getElementById(currentLine);
-					assignAttr(line, {
+					draw.assignAttr(line, {
 						x2: evt.clientX,
 						y2: evt.clientY
 					});
-					//frameCounter++;
 				}
 			}
 			if(currentButton == 2) { // right button
-				/*
-				let currentPos = {
-					x: evt.clientX,
-					y: evt.clientY
-				};
-				*/
-				updateNode(selectedNode, currentPos);
-				// point should self update? yes
+				draw.updateNode(selectedNode, currentPos);
+				// point should self update inside draw.js? yes
 				let nearestPos = grid.getNearestPoint(currentPos);
 				draw.updatePoint(nearestPos);
 			}
 		}
 	} else {
 		if(evt.shiftKey) {
-			console.log('No node selected - updating point');
-			draw.updateGroupPoint(currentPos);
+			if(currentButton == 0) { // left button
+				console.log('Update BOX Draw');
+			} else {
+				console.log('No node selected - updating point: ' + currentButton);
+				draw.updateGroupPoint(currentPos);
+			}
 		}
 	}
 }
@@ -247,8 +256,8 @@ function end(evt) {
 				x: evt.clientX,
 				y: evt.clientY
 			});
-			updateNode(selectedNode, pos);
-			commitNode(selectedNode, pos); // duplicate? have it also update in draw
+			draw.updateNode(selectedNode, pos);
+			model.updateNode(selectedNode, pos);
 			//draw.hidePoint();
 		}
 	}
@@ -262,7 +271,7 @@ function mouseover(evt) {
 	let target = evt.target
 	if(target.nodeName == "use") {
 		// rework logic to detect different events
-		if(!(evt.altKey && evt.ctrlKey)) { // works pretty well
+		if(!(evt.altKey && evt.ctrlKey)) {
 			if(evt.altKey) { // works pretty well
 				currentNode = target;
 				target.setAttributeNS(null, "class", "delete");
@@ -299,7 +308,7 @@ function createGroup(spec) {
 	// create rectangle for dock
 	let start = grid.getCoord(spec.start);
 	let end = grid.getCoord(spec.end);
-	dockGroup.appendChild(createShape('rect', {
+	dockGroup.appendChild(draw.createShape('rect', {
 		"id"		: 'dockPanel',
 		"x"		: start.x - (grid.gap.x / 2),
 		"y"		: start.y - (grid.gap.y / 2),
@@ -307,63 +316,4 @@ function createGroup(spec) {
 		"height"	: (end.y - start.y) + (grid.gap.y),
 		"class"		: 'dock'
 	}));
-}
-
-// delete node
-function deleteNode(id) {
-	Object.keys(nodes[id].links).forEach((link) => {
-		linkGroup.removeChild(document.getElementById(link));
-	});
-	nodeGroup.removeChild(document.getElementById(id));
-	model.deleteNode(id);
-	currentNode = null;
-	selectedNode = null;
-}
-
-// commit node
-function commitNode(id, pos) {
-	model.updateNode(id, pos);
-}
-
-// update node
-function updateNode(id, pos) {
-	if(nodes[id]) {
-		// render updated node
-		let node = document.getElementById(id);
-		assignAttr(node, {
-			x: pos.x,
-			y: pos.y
-		});
-		// render update links on node
-		for(let linkId in nodes[id].links) {
-			let link = document.getElementById(linkId);
-			if(links[linkId].src == id) {
-				assignAttr(link, {
-					x1: pos.x,
-					y1: pos.y
-				});
-			} else {
-				assignAttr(link, {
-					x2: pos.x,
-					y2: pos.y
-				});
-			}
-		}
-	}
-}
-
-// create shape
-function createShape(type, attributes) {
-	var shape = document.createElementNS('http://www.w3.org/2000/svg', type);
-	for(let key in attributes) {
-		shape.setAttribute(key, attributes[key]);
-	}
-	return shape;
-}
-
-// map attributes
-function assignAttr(o, a) {
-	for(let i in a) {
-		o.setAttributeNS(null, i, a[i])
-	}
 }
