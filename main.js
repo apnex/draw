@@ -9,6 +9,8 @@ var linkGroup = document.getElementById('links');
 var gridGroup = document.getElementById('grid');
 var defs = document.getElementById('defs');
 var currentLine = null;
+var currentBox = null;
+var boxPos1 = null;
 var currentNode = null;
 var currentButton = null;
 var currentKey = null;
@@ -139,11 +141,19 @@ function init() {
 
 // mousedown
 function start(evt) {
-	// logic
+	// logic for CLICK events
+	// map and transfer evt state to draw.js - draw.js handles render logic
 	// -> ifCurrentButtonAlreadyDown
 	// -> ifLayer (shift, alt, ctrl)
-	if(!currentButton) {
-		currentButton = evt.button;
+	currentButton = evt.button;
+	if(evt.shiftKey) {
+		console.log('[ ANCHOR SHIFT IS PRESSED ] - create new BOX');
+		boxPos1 = grid.getNearestGroupPoint({
+			x: evt.clientX,
+			y: evt.clientY
+		});
+		currentBox = draw.createBox(boxPos1);
+	} else {
 		if(currentNode) {
 			selectedNode = currentNode.id;
 			let currentPos = {
@@ -161,11 +171,7 @@ function start(evt) {
 			} else {
 				if(currentButton == 0) { // start line drag
 					console.log('Start event: ' + evt + ' button: ' + currentButton + ' nodepos: ' + currentPos.x + ':' + currentPos.y);
-					if(evt.shiftKey) {
-						console.log('[ SHIFT IS PRESSED ]');
-					} else {
-						currentLine = draw.createLink(currentPos);
-					}
+					currentLine = draw.createLink(currentPos);
 				}
 				if(currentButton == 2) { // node on canvas
 					if(!(evt.altKey && evt.ctrlKey)) { // rework logic for simpler events
@@ -191,9 +197,6 @@ function start(evt) {
 				console.log('[[ EXISTING BUTTON ]]: RIGHT already selected');
 			}
 		}
-	} else {
-		// maybe??
-		currentButton = null;
 	}
 }
 
@@ -210,11 +213,7 @@ function update(evt) {
 			if(currentButton == 0) { // left button
 				// draw.updateLine
 				if(currentLine) { // mode to updateLink
-					let line = document.getElementById(currentLine);
-					draw.assignAttr(line, {
-						x2: evt.clientX,
-						y2: evt.clientY
-					});
+					draw.updateLink(currentLine, currentPos);
 				}
 			}
 			if(currentButton == 2) { // right button
@@ -226,12 +225,17 @@ function update(evt) {
 		}
 	} else {
 		if(evt.shiftKey) {
-			if(currentButton == 0) { // left button
+			if(currentButton == 0 && currentBox) { // left button
 				console.log('Update BOX Draw');
+				draw.updateBox(currentBox, boxPos1, currentPos);
+			}
+			draw.updateGroupPoint(currentPos);
+			/* might adjust to have 2 points? a start point and end point
 			} else {
 				console.log('No node selected - updating point: ' + currentButton);
 				draw.updateGroupPoint(currentPos);
 			}
+			*/
 		}
 	}
 }
@@ -239,31 +243,36 @@ function update(evt) {
 // finish line
 function end(evt) {
 	console.log('[END]');
-	if(selectedNode) {
-		if((currentButton == 0) && currentLine) {
-			if(currentNode) {
-				let dst = currentNode.getAttribute("id");
-				draw.addLink(selectedNode, dst);
+	let currentPos = {
+		x: evt.clientX,
+		y: evt.clientY
+	};
+	if(evt.shiftKey) {
+		let boxPos2 = grid.getNearestGroupPoint(currentPos);
+		draw.commitBox(currentBox, boxPos1, boxPos2);
+		currentBox = null;
+	} else {
+		if(selectedNode) {
+			if((currentButton == 0) && currentLine) {
+				if(currentNode) {
+					// change currentNode from DOM object to just ID
+					let dst = currentNode.getAttribute("id");
+					draw.addLink(selectedNode, dst);
+				}
+				draw.deleteLink(currentLine);
+				currentLine = null;
 			}
-			// delete 'active' line
-			draw.deleteLink(currentLine);
-			currentLine = null;
+			if((currentButton == 2)) {
+				let pos = grid.getNearestPoint(currentPos);
+				// draw.commitNode(selectedNode, pos);
+				draw.updateNode(selectedNode, pos);
+				model.updateNode(selectedNode, pos);
+			}
 		}
-		//if((currentButton == 2) && selectedPoint) {
-		if((currentButton == 2)) {
-			// update + render
-			let pos = grid.getNearestPoint({
-				x: evt.clientX,
-				y: evt.clientY
-			});
-			draw.updateNode(selectedNode, pos);
-			model.updateNode(selectedNode, pos);
-			//draw.hidePoint();
-		}
+		draw.hidePoint();
+		selectedNode = null;
+		currentButton = null;
 	}
-	draw.hidePoint();
-	selectedNode = null;
-	currentButton = null;
 }
 
 // mouseover

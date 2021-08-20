@@ -1,5 +1,6 @@
 /*
 Draw provides a visual canvas and API for rendering SVG elements to the DOM
+Does not handle DOM listener events
 */
 
 // main class
@@ -96,9 +97,65 @@ class Draw {
 		}));
 		return id;
 	}
+	updateLink(id, pos) {
+		let line = document.getElementById(id);
+		this.assignAttr(line, {
+			x2: pos.x,
+			y2: pos.y
+		});
+	}
 	deleteLink(id) {
 		let groups = this.state.groups;
 		groups.links.removeChild(document.getElementById(id));
+	}
+	createBox(pos) {
+		let groups = this.state.groups;
+		let layout = this.state.layout;
+		let id = Math.random() * 10;
+		let mypos = layout.getNearestGroupPoint(pos);
+		console.log('[ DRAW ]: createBox: SRC ' + pos.x + ':' + pos.y);
+		groups.dock.appendChild(this.createShape('rect', {
+			"id"		: id,
+			"x"		: mypos.x,
+			"y"		: mypos.y,
+			"width"		: 0,
+			"height"	: 0,
+			"class"		: 'box'
+		}));
+		return id;
+	}
+	updateBox(id, pos1, pos2) {
+		let box = document.getElementById(id);
+		let height = Math.abs(pos2.y - pos1.y);
+		let width = Math.abs(pos2.x - pos1.x);
+
+		// work out shift
+		let xshift = 0;
+		let yshift = 0;
+		if(pos1.x > pos2.x) {
+			xshift = width;
+		}
+		if(pos1.y > pos2.y) {
+			yshift = height;
+		}
+		// update the box
+		this.assignAttr(box, {
+			x	: pos1.x - xshift,
+			y	: pos1.y - yshift,
+			height,
+			width
+		});
+		return box;
+	}
+	commitBox(id, pos1, pos2) { // commit to model
+		let box = this.updateBox(id, pos1, pos2);
+		if(box.getAttribute("height") == 0 || box.getAttribute("width") == 0) { // invalid so delete
+			this.deleteBox(id);
+		}
+	}
+	deleteBox(id) {
+		let groups = this.state.groups;
+		groups.dock.removeChild(document.getElementById(id));
 	}
 	createNode(kind, pos, tag) {
 		let model = this.state.model;
