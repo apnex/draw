@@ -120,7 +120,7 @@ class Draw {
 			"y"		: mypos.y,
 			"width"		: 0,
 			"height"	: 0,
-			"class"		: 'box'
+			"class"		: 'group'
 		}));
 		return id;
 	}
@@ -140,8 +140,8 @@ class Draw {
 		}
 		// update the box
 		this.assignAttr(box, {
-			x	: pos1.x - xshift,
-			y	: pos1.y - yshift,
+			x: pos1.x - xshift,
+			y: pos1.y - yshift,
 			height,
 			width
 		});
@@ -196,6 +196,16 @@ class Draw {
 				}
 			}
 		}
+	}
+	commitNode(id, pos) {
+		let model = this.state.model;
+		/* Node Validation before commit? Check if 2 nodes collide perhaps
+		if(box.getAttribute("height") == 0 || box.getAttribute("width") == 0) { // invalid so delete
+			this.deleteBox(id);
+		}
+		*/
+		this.updateNode(id, pos);
+		model.updateNode(id, pos);
 	}
 	deleteNode(id) {
 		let model = this.state.model;

@@ -10,6 +10,7 @@ var gridGroup = document.getElementById('grid');
 var defs = document.getElementById('defs');
 var currentLine = null;
 var currentBox = null;
+var currentGroup = null;
 var boxPos1 = null;
 var currentNode = null;
 var currentButton = null;
@@ -60,7 +61,22 @@ function initHandlers(obj) {
 
 // test key trigger
 function keyDown(event) {
+	if(event.defaultPrevented) {
+		return; // Do nothing if the event was already processed
+	}
+	// move all setAttribute manipulation to draw.js
+	// consider using persistent 'layers' mapped to 1-4 keys - use shift+1 for layer 1 - default plain shift to 1
 	currentKey = event.key;
+	console.log('CURRENTKEY: ' + event.key);
+	let myGroup;
+	if(currentGroup) { // move to draw.js
+		myGroup = document.getElementById(currentGroup);
+	}
+	if(currentKey == 'Meta') {
+		if(myGroup) {
+			myGroup.setAttribute("class", "groupDelete");
+		}
+	}
 	if(currentKey == 'Alt') {
 		if(currentNode) {
 			currentNode.setAttributeNS(null, "class", "delete");
@@ -73,11 +89,11 @@ function keyDown(event) {
 	}
 	if(currentKey == 'Shift') {
 		draw.showGrid();
-		/*
-		if(currentNode) {
-			currentNode.setAttributeNS(null, "class", "clone");
+		if(myGroup) {
+			if(event.altKey) {
+				myGroup.setAttribute("class", "groupDelete");
+			}
 		}
-		*/
 	}
 	console.log('[ KEYDOWN ]: ' + event.key);
 }
@@ -85,18 +101,30 @@ function keyDown(event) {
 // test key trigger
 function keyUp(event) {
 	console.log('[ KEYUP ]: ' + event.key);
-	if(currentKey == 'Alt') {
+	let myGroup;
+	if(currentGroup) { // move to draw.js
+		myGroup = document.getElementById(currentGroup);
+	}
+	if(event.key == 'Meta') {
+		if(myGroup) {
+			myGroup.setAttribute("class", "group");
+		}
+	}
+	if(event.key == 'Alt') {
 		if(currentNode) {
 			currentNode.setAttributeNS(null, "class", "mon");
 		}
 	}
-	if(currentKey == 'Control') {
+	if(event.key == 'Control') {
 		if(currentNode) {
 			currentNode.setAttributeNS(null, "class", "mon");
 		}
 	}
-	if(currentKey == 'Shift') {
+	if(event.key == 'Shift') {
 		draw.hideGrid();
+		if(myGroup) {
+			myGroup.setAttribute("class", "group");
+		}
 	}
 	currentKey = null;
 }
@@ -142,17 +170,22 @@ function init() {
 // mousedown
 function start(evt) {
 	// logic for CLICK events
-	// map and transfer evt state to draw.js - draw.js handles render logic
+	// map inputs and transfer evt state to draw.js - draw.js handles render and model logic
 	// -> ifCurrentButtonAlreadyDown
 	// -> ifLayer (shift, alt, ctrl)
 	currentButton = evt.button;
 	if(evt.shiftKey) {
-		console.log('[ ANCHOR SHIFT IS PRESSED ] - create new BOX');
-		boxPos1 = grid.getNearestGroupPoint({
-			x: evt.clientX,
-			y: evt.clientY
-		});
-		currentBox = draw.createBox(boxPos1);
+		if(evt.altKey) {
+			console.log('[ LAYER-01 ] - Delete Group');
+			draw.deleteBox(currentGroup);
+		} else {
+			console.log('[ LAYER-01 ] - Create Group');
+			boxPos1 = grid.getNearestGroupPoint({
+				x: evt.clientX,
+				y: evt.clientY
+			});
+			currentBox = draw.createBox(boxPos1);
+		}
 	} else {
 		if(currentNode) {
 			selectedNode = currentNode.id;
@@ -248,9 +281,11 @@ function end(evt) {
 		y: evt.clientY
 	};
 	if(evt.shiftKey) {
-		let boxPos2 = grid.getNearestGroupPoint(currentPos);
-		draw.commitBox(currentBox, boxPos1, boxPos2);
-		currentBox = null;
+		if(currentBox) {
+			let boxPos2 = grid.getNearestGroupPoint(currentPos);
+			draw.commitBox(currentBox, boxPos1, boxPos2);
+			currentBox = null;
+		}
 	} else {
 		if(selectedNode) {
 			if((currentButton == 0) && currentLine) {
@@ -264,9 +299,7 @@ function end(evt) {
 			}
 			if((currentButton == 2)) {
 				let pos = grid.getNearestPoint(currentPos);
-				// draw.commitNode(selectedNode, pos);
-				draw.updateNode(selectedNode, pos);
-				model.updateNode(selectedNode, pos);
+				draw.commitNode(selectedNode, pos);
 			}
 		}
 		draw.hidePoint();
@@ -276,39 +309,60 @@ function end(evt) {
 }
 
 // mouseover
-function mouseover(evt) {
-	let target = evt.target
+function mouseover(event) {
+	let target = event.target
 	if(target.nodeName == "use") {
 		// rework logic to detect different events
-		if(!(evt.altKey && evt.ctrlKey)) {
-			if(evt.altKey) { // works pretty well
-				currentNode = target;
-				target.setAttributeNS(null, "class", "delete");
+		// move setAttribute to draw.nodes(id).status.clone();
+		// move setAttribute to draw.nodes(id).status.plain();
+		// move setAttribute to draw.nodes(id).status.delete();
+		// move setAttribute to draw.group(id).status.clone();
+		// move setAttribute to draw.group(id).status.plain();
+		// move setAttribute to draw.group(id).status.delete();
+		currentNode = target;
+		if(!(event.altKey && event.ctrlKey)) {
+			if(event.altKey) { // works pretty well
+				target.setAttribute("class", "delete");
 			} else {
-				if(evt.ctrlKey) { // works pretty well
-					currentNode = target;
-					target.setAttributeNS(null, "class", "clone");
+				if(event.ctrlKey) { // works pretty well
+					target.setAttribute("class", "clone");
 				} else {
-					currentNode = target;
-					target.setAttributeNS(null, "class", "mon");
+					target.setAttribute("class", "mon");
 				}
 			}
 		} else {
-			currentNode = target;
-			target.setAttributeNS(null, "class", "mon");
+			target.setAttribute("class", "mon");
+		}
+	} else {
+		if(target.getAttribute('class') == 'group') {
+			currentGroup = target.getAttribute('id');
+			//console.log('META - switch class:: ALT:' + event.altKey + ' SHIFT:' + event.shiftKey);
+			if(event.shiftKey) {
+				if(event.altKey) {
+					target.setAttribute("class", "groupDelete");
+				}
+			}
 		}
 	}
 }
 
 // mouseout
-function mouseout(evt) {
-	let target = evt.target
+function mouseout(event) {
+	let target = event.target
 	if(target.nodeName == "use") {
-		//if(nodes[target.id].type != "dock") {
+		//if(nodes[target.id].type != "dock") { // look at type/tag from model
 			currentNode = null;
-			target.setAttributeNS(null, "class", "mof");
-			return;
+			target.setAttribute("class", "mof");
 		//}
+	} else {
+		if(target.getAttribute('class') == 'groupDelete') {
+			currentGroup = null;
+			if(event.shiftKey) {
+				//if(event.altKey) {
+					target.setAttribute("class", "group");
+				//}
+			}
+		}
 	}
 }
 
