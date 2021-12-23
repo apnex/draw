@@ -4,12 +4,12 @@ class Grid {
 		console.log('INIT new { GRID }');
 		this.state = {
 			gap: {
-				x: 100,
-				y: 100
+				x: 60,
+				y: 60
 			},
 			offset: {
-				x: 50,
-				y: 50
+				x: 30,
+				y: 30
 			}
 		};
 	}
@@ -71,5 +71,4 @@ const createInstance = function() {
 };
 
 // export
-const grid = createInstance();
-export default grid;
+export default createInstance();

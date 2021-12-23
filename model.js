@@ -2,6 +2,10 @@
 -- Model deals in structure of nodes and links
 -- Model does not handle layout or visual coordinate space
 -- Should it be aware of Layout ?
+zones = {
+	id	= bcdeab,
+	type	= "zone"
+}
 nodes = {
 	id	= abcdef,
 	type	= "router",
@@ -24,9 +28,38 @@ class Model {
 	constructor(input, options = {}) {
 		console.log('INIT new { MODEL }');
 		this.state = {
+			zones: {},
 			nodes: {},
 			links: {}
 		};
+	}
+	createZone(pos1, pos2, tag) {
+		let id = Math.random() * 10;
+		console.log('[ MODEL ]: createZone - ' + id);
+		this.state.zones[id] = {
+			"id"	: id,
+			"type"	: 'zone',
+			"tag"	: tag,
+			"pos1"	: pos1,
+			"pos2"	: pos2
+		};
+		console.log(JSON.stringify(this.state, null, "\t"));
+		return id;
+	}
+	updateZone(id, pos1, pos2) {
+		let zones = this.state.zones;
+		if(zones[id]) {
+			zones[id].pos1 = pos1;
+			zones[id].pos2 = pos2;
+		}
+	}
+	deleteZone(id) {
+		console.log('[ MODEL ]: deleteZone - ' + id);
+		let zones = this.state.zones;
+		if(zones[id]) {
+			delete(zones[id]);
+			return id;
+		}
 	}
 	createNode(kind, pos, tag) {
 		let id = Math.random() * 10;
@@ -98,11 +131,11 @@ class Model {
 // create instance
 const createInstance = function() {
 	const instance = new Model();
+	instance.zones = instance.state.zones;
 	instance.nodes = instance.state.nodes;
 	instance.links = instance.state.links;
 	return instance;
 };
 
 // export
-const model = createInstance();
-export default model;
+export default createInstance();

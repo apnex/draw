@@ -1,35 +1,29 @@
 import grid from './grid.js';
 import model from './model.js';
+import iconset from './iconset.js';
 import drawFactory from './draw.js';
 var root = document.getElementById('container');
 initHandlers(root)
 var nodeGroup = document.getElementById('nodes');
-var dockGroup = document.getElementById('groups');
+var dockGroup = document.getElementById('zones');
 var linkGroup = document.getElementById('links');
 var gridGroup = document.getElementById('grid');
 var defs = document.getElementById('defs');
 var currentLine = null;
-var currentBox = null;
+var currentZone = null;
 var currentGroup = null;
-var boxPos1 = null;
+var zonePos1 = null;
 var currentNode = null;
 var currentButton = null;
 var currentKey = null;
 var currentPoint = null;
 var selectedNode = null;
 var selectedPoint = null;
+
+// init canvas
 var nodes = model.nodes;
 var links = model.links;
-var icons = [
-	'host',
-	'router',
-	'vxlan',
-	'firewall',
-	'loadbalancer',
-	'server'
-];
-
-var draw = drawFactory(model, grid);
+var draw = drawFactory(model, grid, iconset);
 init();
 
 // attach handlers
@@ -69,8 +63,14 @@ function keyDown(event) {
 	currentKey = event.key;
 	console.log('CURRENTKEY: ' + event.key);
 	let myGroup;
+	let kind;
+	let styles;
 	if(currentGroup) { // move to draw.js
 		myGroup = document.getElementById(currentGroup);
+	}
+	if(currentNode) {
+		kind = nodes[currentNode.id].type;
+		styles = iconset.icons[kind].class;
 	}
 	if(currentKey == 'Meta') {
 		if(myGroup) {
@@ -79,12 +79,12 @@ function keyDown(event) {
 	}
 	if(currentKey == 'Alt') {
 		if(currentNode) {
-			currentNode.setAttributeNS(null, "class", "delete");
+			currentNode.setAttributeNS(null, "class", styles.delete);
 		}
 	}
 	if(currentKey == 'Control') {
 		if(currentNode) {
-			currentNode.setAttributeNS(null, "class", "clone");
+			currentNode.setAttributeNS(null, "class", styles.clone);
 		}
 	}
 	if(currentKey == 'Shift') {
@@ -102,8 +102,14 @@ function keyDown(event) {
 function keyUp(event) {
 	console.log('[ KEYUP ]: ' + event.key);
 	let myGroup;
+	let kind;
+	let styles;
 	if(currentGroup) { // move to draw.js
 		myGroup = document.getElementById(currentGroup);
+	}
+	if(currentNode) {
+		kind = nodes[currentNode.id].type;
+		styles = iconset.icons[kind].class;
 	}
 	if(event.key == 'Meta') {
 		if(myGroup) {
@@ -112,12 +118,12 @@ function keyUp(event) {
 	}
 	if(event.key == 'Alt') {
 		if(currentNode) {
-			currentNode.setAttributeNS(null, "class", "mon");
+			currentNode.setAttributeNS(null, "class", styles.mouseover);
 		}
 	}
 	if(event.key == 'Control') {
 		if(currentNode) {
-			currentNode.setAttributeNS(null, "class", "mon");
+			currentNode.setAttributeNS(null, "class", styles.mouseover);
 		}
 	}
 	if(event.key == 'Shift') {
@@ -131,11 +137,39 @@ function keyUp(event) {
 
 // draw initial icons
 function init() {
+	// load iconset
+	[
+		'host',
+		'router',
+		'vxlan',
+		'firewall',
+		'loadbalancer',
+		'server'
+	].forEach((kind) => {
+		iconset.createIcon(kind, {
+			"mouseover"	: "mon",
+			"mouseout"	: "mof",
+			"delete"	: "delete",
+			"clone"		: "clone"
+		});
+	});
+	iconset.createIcon('waypoint', {
+		"mouseover"	: "mon2",
+		"mouseout"	: "mof2",
+		"delete"	: "delete2",
+		"clone"		: "clone2"
+	});
+
+	// build dock (remove and merge with draw)
+	dock(Object.values(iconset.icons));
+}
+
+function dock(icons) {
 	// build the initial dock
 	let myList = [];
 	let x = 0;
 	icons.forEach((icon) => {
-		myList.push(draw.createNode(icon, {x: x++, y: 0}, 'dock'));
+		myList.push(draw.createNode(icon.kind, {x: x++, y: 0}, 'dock'));
 	});
 
 	// calculate diff x/y on cells
@@ -177,14 +211,14 @@ function start(evt) {
 	if(evt.shiftKey) {
 		if(evt.altKey) {
 			console.log('[ LAYER-01 ] - Delete Group');
-			draw.deleteBox(currentGroup);
+			draw.deleteZone(currentGroup);
 		} else {
 			console.log('[ LAYER-01 ] - Create Group');
-			boxPos1 = grid.getNearestGroupPoint({
+			zonePos1 = grid.getNearestGroupPoint({
 				x: evt.clientX,
 				y: evt.clientY
 			});
-			currentBox = draw.createBox(boxPos1);
+			currentZone = draw.createZone(zonePos1, 'liveZone');
 		}
 	} else {
 		if(currentNode) {
@@ -258,12 +292,12 @@ function update(evt) {
 		}
 	} else {
 		if(evt.shiftKey) {
-			if(currentButton == 0 && currentBox) { // left button
-				console.log('Update BOX Draw');
-				draw.updateBox(currentBox, boxPos1, currentPos);
+			if(currentButton == 0 && currentZone) { // left button
+				console.log('Update ZONE Draw');
+				draw.updateZone(currentZone, zonePos1, currentPos);
 			}
 			draw.updateGroupPoint(currentPos);
-			/* might adjust to have 2 points? a start point and end point
+			/* might adjust to have 2 points? a start point and end point - visual change
 			} else {
 				console.log('No node selected - updating point: ' + currentButton);
 				draw.updateGroupPoint(currentPos);
@@ -281,10 +315,10 @@ function end(evt) {
 		y: evt.clientY
 	};
 	if(evt.shiftKey) {
-		if(currentBox) {
-			let boxPos2 = grid.getNearestGroupPoint(currentPos);
-			draw.commitBox(currentBox, boxPos1, boxPos2);
-			currentBox = null;
+		if(currentZone) {
+			let zonePos2 = grid.getNearestGroupPoint(currentPos);
+			draw.commitZone(currentZone, zonePos1, zonePos2);
+			currentZone = null;
 		}
 	} else {
 		if(selectedNode) {
@@ -312,26 +346,32 @@ function end(evt) {
 function mouseover(event) {
 	let target = event.target
 	if(target.nodeName == "use") {
-		// rework logic to detect different events
+		currentNode = target;
+		// rework logic to detect different events based on ManagedObject model
 		// move setAttribute to draw.nodes(id).status.clone();
 		// move setAttribute to draw.nodes(id).status.plain();
 		// move setAttribute to draw.nodes(id).status.delete();
 		// move setAttribute to draw.group(id).status.clone();
 		// move setAttribute to draw.group(id).status.plain();
 		// move setAttribute to draw.group(id).status.delete();
-		currentNode = target;
+
+		// trigger node specific actions on mouse over
+		// this will require moving logic to a 'node' object with actions
+		let kind = nodes[target.id].type;
+		let styles = iconset.icons[kind].class;
+
 		if(!(event.altKey && event.ctrlKey)) {
 			if(event.altKey) { // works pretty well
-				target.setAttribute("class", "delete");
+				target.setAttribute("class", styles.delete);
 			} else {
 				if(event.ctrlKey) { // works pretty well
-					target.setAttribute("class", "clone");
+					target.setAttribute("class", styles.clone);
 				} else {
-					target.setAttribute("class", "mon");
+					target.setAttribute("class", styles.mouseover);
 				}
 			}
 		} else {
-			target.setAttribute("class", "mon");
+			target.setAttribute("class", styles.mouseover);
 		}
 	} else {
 		if(target.getAttribute('class') == 'group') {
@@ -352,7 +392,9 @@ function mouseout(event) {
 	if(target.nodeName == "use") {
 		//if(nodes[target.id].type != "dock") { // look at type/tag from model
 			currentNode = null;
-			target.setAttribute("class", "mof");
+			let kind = nodes[target.id].type;
+			let style = iconset.icons[kind].class.mouseout;
+			target.setAttribute("class", style);
 		//}
 	} else {
 		if(target.getAttribute('class') == 'groupDelete') {
@@ -366,17 +408,17 @@ function mouseout(event) {
 	}
 }
 
-// create group
+// create group - only for dock - need to remove and merge with draw.createZone
 function createGroup(spec) {
 	// create rectangle for dock
 	let start = grid.getCoord(spec.start);
 	let end = grid.getCoord(spec.end);
 	dockGroup.appendChild(draw.createShape('rect', {
 		"id"		: 'dockPanel',
+		"class"		: 'dock',
 		"x"		: start.x - (grid.gap.x / 2),
 		"y"		: start.y - (grid.gap.y / 2),
 		"width"		: (end.x - start.x) + (grid.gap.x),
-		"height"	: (end.y - start.y) + (grid.gap.y),
-		"class"		: 'dock'
+		"height"	: (end.y - start.y) + (grid.gap.y)
 	}));
 }

@@ -10,6 +10,7 @@
 }
 .outline {
 	fill: var(--fill, #ffffff);
+	fill-opacity: var(--outer-fill-opacity, 1);
 	stroke: var(--outer, #00bb66);
 	stroke-width: var(--outer-width, 7);
 }
@@ -28,6 +29,35 @@
 	--fill: #e57373;
 	--outer: #e57373;
 }
+.clone {
+	--icon: #101010;
+	--fill: #81d4fa;
+	--outer: #81d4fa;
+}
+.mon2 {
+	--icon: #4fc3f7;
+	--fill: #aed581;
+	--outer: #aed581;
+	--outer-fill-opacity: 0;
+}
+.mof2 {
+	--icon: #4fc3f7;
+	--fill: #101010;
+	--outer: #aed581;
+	--outer-fill-opacity: 0;
+}
+.delete2 {
+	--icon: #4fc3f7;
+	--fill: #e57373;
+	--outer: #e57373;
+	--outer-fill-opacity: 0;
+}
+.clone2 {
+	--icon: #4fc3f7;
+	--fill: #81d4fa;
+	--outer: #81d4fa;
+	--outer-fill-opacity: 0;
+}
 .groupDelete {
 	rx		: 6px;
 	stroke		: #e57373;
@@ -42,13 +72,8 @@
 	fill		: #ddddff;
 	fill-opacity	: 0.3;
 }
-.clone {
-	--icon: #101010;
-	--fill: #81d4fa;
-	--outer: #81d4fa;
-}
 .icon {
-	transform	: scale(0.4);
+	transform	: scale(0.3);
 }
 .link {
 	stroke		: #4fc3f7;

@@ -1,20 +1,22 @@
 /*
 Draw provides a visual canvas and API for rendering SVG elements to the DOM
+Contains logic to combine structure (Model) and classes (Style) for rendering
 Does not handle DOM listener events
 */
 
 // main class
 class Draw {
-	constructor(model, layout) {
+	constructor(model, layout, iconset) {
 		console.log('INIT new { DRAW }');
 		//import grid from './grid.js';
 		//import model from './model.js';
 		this.state = {
 			model: model,
 			layout: layout,
+			iconset: iconset,
 			groups: {
 				nodes: document.getElementById('nodes'),
-				dock: document.getElementById('groups'),
+				zones: document.getElementById('zones'),
 				links: document.getElementById('links'),
 				grid: document.getElementById('grid'),
 				point: document.getElementById('point')
@@ -108,28 +110,24 @@ class Draw {
 		let groups = this.state.groups;
 		groups.links.removeChild(document.getElementById(id));
 	}
-	createBox(pos) {
+	createZone(pos, id, width = 0, height = 0) {
 		let groups = this.state.groups;
 		let layout = this.state.layout;
-		let id = Math.random() * 10;
 		let mypos = layout.getNearestGroupPoint(pos);
-		console.log('[ DRAW ]: createBox: SRC ' + pos.x + ':' + pos.y);
-		groups.dock.appendChild(this.createShape('rect', {
-			"id"		: id,
-			"x"		: mypos.x,
-			"y"		: mypos.y,
-			"width"		: 0,
-			"height"	: 0,
-			"class"		: 'group'
+		console.log('[ DRAW ]: createBox: ID[' + id + '] SRC ' + pos.x + ':' + pos.y);
+		groups.zones.appendChild(this.createShape('rect', {
+			"id"	: id,
+			"class"	: 'group',
+			"x"	: mypos.x,
+			"y"	: mypos.y,
+			width, height
 		}));
 		return id;
 	}
-	updateBox(id, pos1, pos2) {
-		let box = document.getElementById(id);
+	resolveBox(pos1, pos2) { // move to ManagedObject(Zone) class
+		// work out shift
 		let height = Math.abs(pos2.y - pos1.y);
 		let width = Math.abs(pos2.x - pos1.x);
-
-		// work out shift
 		let xshift = 0;
 		let yshift = 0;
 		if(pos1.x > pos2.x) {
@@ -138,35 +136,47 @@ class Draw {
 		if(pos1.y > pos2.y) {
 			yshift = height;
 		}
-		// update the box
-		this.assignAttr(box, {
-			x: pos1.x - xshift,
-			y: pos1.y - yshift,
-			height,
-			width
-		});
-		return box;
+		// return values
+		return {
+			"x"	: pos1.x - xshift,
+			"y"	: pos1.y - yshift,
+			width, height
+		};
 	}
-	commitBox(id, pos1, pos2) { // commit to model
-		let box = this.updateBox(id, pos1, pos2);
-		if(box.getAttribute("height") == 0 || box.getAttribute("width") == 0) { // invalid so delete
-			this.deleteBox(id);
+	updateZone(id, pos1, pos2) {
+		let zone = document.getElementById(id);
+		this.assignAttr(zone, this.resolveBox(pos1, pos2));
+		return zone;
+	}
+	commitZone(id, pos1, pos2) {
+		this.deleteZone(id); // remove temp liveBox
+		let model = this.state.model;
+		let zoneSize = this.resolveBox(pos1, pos2); // mode to ManagedObject(zone)
+		if(!(zoneSize.width == 0 || zoneSize.height == 0)) { // check if valid, then add to model+page
+			console.log('[ DRAW ]: commitZone - [' + pos1.x + ':' + pos1.y + ']-[' + pos2.x + ':' + pos2.y + ']');
+			this.createZone(zoneSize, model.createZone(pos1, pos2, 'modelZoneTag'), zoneSize.width, zoneSize.height);
 		}
 	}
-	deleteBox(id) {
+	deleteZone(id) {
 		let groups = this.state.groups;
-		groups.dock.removeChild(document.getElementById(id));
+		groups.zones.removeChild(document.getElementById(id));
 	}
 	createNode(kind, pos, tag) {
+		// creates new node in model and renders to canvas
 		let model = this.state.model;
 		let groups = this.state.groups;
 		let layout = this.state.layout;
+		let iconset = this.state.iconset;
+
+		// instance within the diagram
 		let id = model.createNode(kind, pos, tag);
+
+		// retrieve individual icon and style properties
 		groups.nodes.appendChild(this.createUse(kind, {
 			"id"	: id,
 			"x"	: layout.getCoord(pos).x,
 			"y"	: layout.getCoord(pos).y,
-			"class"	: 'mof'
+			"class"	: iconset.icons[kind].class.mouseout
 		}));
 		return id;
 	}
@@ -198,8 +208,9 @@ class Draw {
 		}
 	}
 	commitNode(id, pos) {
+		// commits node to model
 		let model = this.state.model;
-		/* Node Validation before commit? Check if 2 nodes collide perhaps
+		/* Node Validation before commit? Check if 2 nodes collide perhaps - update 'layout' to include a 'stack' for multiple nodes on a 'cell'
 		if(box.getAttribute("height") == 0 || box.getAttribute("width") == 0) { // invalid so delete
 			this.deleteBox(id);
 		}
@@ -216,8 +227,6 @@ class Draw {
 		});
 		groups.nodes.removeChild(document.getElementById(id));
 		model.deleteNode(id);
-		//currentNode = null;
-		//selectedNode = null;
 	}
 	showGrid() {
 		let groups = this.state.groups;
@@ -242,6 +251,7 @@ class Draw {
 		let root = document.getElementById('container');
 		let rect = root.getBoundingClientRect();
 		let groups = this.state.groups;
+		let layout = this.state.layout;
 		console.log('[ CREATE ]: point { ' + rect.width + ':' + rect.height + ' }');
 		this.state.currentPoint = {
 			x: pos.x,
@@ -265,10 +275,10 @@ class Draw {
 		}));
 		groups.point.appendChild(this.createShape('rect', {
 			"id"		: 'box',
-			"x"		: pos.x - 50,
-			"y"		: pos.y - 50,
-			"width"		: 100,
-			"height"	: 100,
+			"x"		: pos.x - layout.offset.x,
+			"y"		: pos.y - layout.offset.y,
+			"width"		: layout.gap.x,
+			"height"	: layout.gap.y,
 			"class"		: 'box'
 		}));
 	}
@@ -351,15 +361,14 @@ class Draw {
 }
 
 // create instance
-const createInstance = function(model, layout) {
-	const instance = new Draw(model, layout);
+const createInstance = function(model, layout, iconset) {
+	const instance = new Draw(model, layout, iconset);
 	instance.model = instance.state.model;
 	instance.layout = instance.state.layout;
 	instance.groups = instance.state.groups;
+	instance.iconset = instance.state.iconset;
 	return instance;
 };
 
 // export
-//const draw = createInstance();
-//export default draw;
 export default createInstance;
