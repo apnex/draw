@@ -111,18 +111,38 @@ class Draw {
 		groups.links.removeChild(document.getElementById(id));
 	}
 	createZone(pos, id, width = 0, height = 0) {
+		// zone always aligned to grid cells
+		// therefore change interface to accept cell coords - not pixel coords
+		// same with width and height - change to cell coords
 		let groups = this.state.groups;
 		let layout = this.state.layout;
-		let mypos = layout.getNearestGroupPoint(pos);
 		console.log('[ DRAW ]: createBox: ID[' + id + '] SRC ' + pos.x + ':' + pos.y);
 		groups.zones.appendChild(this.createShape('rect', {
 			"id"	: id,
 			"class"	: 'group',
-			"x"	: mypos.x,
-			"y"	: mypos.y,
+			"x"	: pos.x,
+			"y"	: pos.y,
 			width, height
 		}));
 		return id;
+	}
+	createZone2(spec) {
+		// zone always aligned to grid cells
+		// therefore change interface to accept cell coords - not pixel coords
+		// same with width and height - change to cell coords
+		let groups = this.state.groups;
+		let layout = this.state.layout;
+		let start = layout.getCoord(spec.start);
+		let end = layout.getCoord(spec.end);
+		console.log('ZoneSpec: ' + JSON.stringify(spec,null, "\t"));
+		groups.zones.appendChild(this.createShape('rect', {
+			"id"		: spec.id,
+			"class"		: spec.class,
+			"x"		: start.x - (layout.gap.x / 2),
+			"y"		: start.y - (layout.gap.y / 2),
+			"width"		: (end.x - start.x) + (layout.gap.x),
+			"height"	: (end.y - start.y) + (layout.gap.y)
+		}));
 	}
 	resolveBox(pos1, pos2) { // move to ManagedObject(Zone) class
 		// work out shift

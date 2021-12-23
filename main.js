@@ -45,12 +45,8 @@ function initHandlers(obj) {
 		event.stopPropagation();
 		return false;
 	});
-	document.addEventListener('keydown', (event) => {
-		keyDown(event);
-	});
-	document.addEventListener('keyup', (event) => {
-		keyUp(event);
-	});
+	document.addEventListener('keydown', (event) => { keyDown(event); });
+	document.addEventListener('keyup', (event) => {	keyUp(event); });
 }
 
 // test key trigger
@@ -164,40 +160,16 @@ function init() {
 	dock(Object.values(iconset.icons));
 }
 
-function dock(icons) {
-	// build the initial dock
-	let myList = [];
-	let x = 0;
-	icons.forEach((icon) => {
-		myList.push(draw.createNode(icon.kind, {x: x++, y: 0}, 'dock'));
+function dock(icons) { // build the dock
+	let myList = icons.map((icon, x) => {
+		return draw.createNode(icon.kind, {x, y: 0}, 'dock');
 	});
-
-	// calculate diff x/y on cells
-	let x1 = 0;
-	let y1 = 0;
-	let x2 = 0;
-	let y2 = 0;
-	myList.forEach((id) => { // scan for dimension
-		if(nodes[id].x < x1) {
-			x1 = nodes[id].x;
-		} else {
-			if(nodes[id].x > x2) {
-				x2 = nodes[id].x;
-			}
-		}
-		if(nodes[id].y < y1) {
-			y1 = nodes[id].y;
-		} else {
-			if(nodes[id].y > y2) {
-				y2 = nodes[id].y;
-			}
-		}
-	});
-	console.log(JSON.stringify(grid.getCoord({x: 3, y: 3}), null, "\t"));
-	// rework group into draw
-	createGroup({
-		start	: {x: x1, y: y1},
-		end	: {x: x2, y: y2}
+	// rework and merge create group/dock/zone function inside draw.js
+	draw.createZone2({
+		id	: 'dockPanel',
+		class	: 'dock',
+		start	: {x: 0, y: 0},
+		end	: {x: myList.length - 1, y: 0}
 	});
 }
 
@@ -213,12 +185,14 @@ function start(evt) {
 			console.log('[ LAYER-01 ] - Delete Group');
 			draw.deleteZone(currentGroup);
 		} else {
-			console.log('[ LAYER-01 ] - Create Group');
-			zonePos1 = grid.getNearestGroupPoint({
-				x: evt.clientX,
-				y: evt.clientY
-			});
-			currentZone = draw.createZone(zonePos1, 'liveZone');
+			if(currentButton == 0) { // left-click
+				console.log('[ LAYER-01 ] - Create Group');
+				zonePos1 = grid.getNearestGroupPoint({
+					x: evt.clientX,
+					y: evt.clientY
+				});
+				currentZone = draw.createZone(zonePos1, 'liveZone');
+			}
 		}
 	} else {
 		if(currentNode) {
@@ -406,19 +380,4 @@ function mouseout(event) {
 			}
 		}
 	}
-}
-
-// create group - only for dock - need to remove and merge with draw.createZone
-function createGroup(spec) {
-	// create rectangle for dock
-	let start = grid.getCoord(spec.start);
-	let end = grid.getCoord(spec.end);
-	dockGroup.appendChild(draw.createShape('rect', {
-		"id"		: 'dockPanel',
-		"class"		: 'dock',
-		"x"		: start.x - (grid.gap.x / 2),
-		"y"		: start.y - (grid.gap.y / 2),
-		"width"		: (end.x - start.x) + (grid.gap.x),
-		"height"	: (end.y - start.y) + (grid.gap.y)
-	}));
 }
