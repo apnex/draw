@@ -28,9 +28,14 @@ class Context {
 			if(node.active == active && node.recent == recent) {
 				return true;
 			}
-		}).map((node) => {
-			return this.model.nodes[node.id];
-		});
+		}).reduce((nodes, node) => {
+			if(this.model.nodes[node.id]) { // handles null values
+				nodes.push(node);
+			} else {
+				delete(this.state.nodes[node.id]); // clean stale node from local state
+			}
+			return nodes;
+		}, []);
 	}
 	mouseover(event) {
 		let target = event.target
@@ -55,7 +60,6 @@ class Context {
 			this.state.nodes[target.id].active = true;
 			this.state.nodes[target.id].recent = true;
 		}
-		//console.log(JSON.stringify(this.state, null, "\t"));
 		//console.log('CONTEXT test - mouseover triggered - NAME: ' + target.nodeName + ' ID: ' + target.id);
 		return this;
 	}
@@ -67,7 +71,6 @@ class Context {
 			this.state.nodes[target.id].active = false;
 			this.state.nodes[target.id].recent = true;
 		}
-		//console.log(JSON.stringify(this.state, null, "\t"));
 		//console.log('CONTEXT test - mouseout triggered - NAME: ' + target.nodeName + ' ID: ' + target.id);
 		return this;
 	}
