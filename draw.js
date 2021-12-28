@@ -5,6 +5,7 @@ Does not handle DOM listener events
 */
 
 // main class
+import contextFactory from './context.js';
 class Draw {
 	constructor(model, layout, iconset) {
 		console.log('INIT new { DRAW }');
@@ -22,6 +23,9 @@ class Draw {
 				point: document.getElementById('point')
 			}
 		};
+
+		// context testing
+		this.context = contextFactory(document, model);
 
 		// work out screen size, layout gap, and create intermediate grid point dimensions
 		// rework - to be a dedicated model, with its own snap points (getNearestPoint)

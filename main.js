@@ -21,8 +21,8 @@ var selectedNode = null;
 var selectedPoint = null;
 
 // init canvas
-var nodes = model.nodes;
-var links = model.links;
+var nodes = model.nodes; // rework main to remove this need
+var links = model.links; // rework main to remove this need
 var draw = drawFactory(model, grid, iconset);
 init();
 
@@ -155,22 +155,62 @@ function init() {
 		"delete"	: "delete2",
 		"clone"		: "clone2"
 	});
-
-	// build dock (remove and merge with draw)
-	dock(Object.values(iconset.icons));
-}
-
-function dock(icons) { // build the dock
-	let myList = icons.map((icon, x) => {
-		return draw.createNode(icon.kind, {x, y: 0}, 'dock');
+	iconset.createIcon('export', {
+		"mouseover"	: "mon2",
+		"mouseout"	: "mof2",
+		"delete"	: "delete2",
+		"clone"		: "clone2"
 	});
+
 	// rework and merge create group/dock/zone function inside draw.js
+	// dock panel (remove and merge with draw)
+	[
+		'host',
+		'server',
+		'loadbalancer',
+		'firewall',
+		'vxlan',
+		'router'
+	].forEach((icon, x) => {
+		draw.createNode(icon, {x, y: 0}, 'dock');
+	});
 	draw.createZone2({
 		id	: 'dockPanel',
-		class	: 'dock',
+		class	: 'panel',
 		start	: {x: 0, y: 0},
-		end	: {x: myList.length - 1, y: 0}
+		end	: {x: 5, y: 0},
+		tags	: []
 	});
+
+	// save panel
+	[
+		'export',
+		'waypoint'
+	].forEach((icon, x) => {
+		draw.createNode(icon, {x, y: 1}, 'control');
+	});
+	draw.createZone2({
+		id	: 'controlPanel',
+		class	: 'panel',
+		start	: {x: 0, y: 1},
+		end	: {x: 1, y: 1},
+		tags	: []
+	});
+}
+
+function saveJson() {
+	// generate new model string blob
+	let myString = JSON.stringify(model.state, null, "\t");
+	let string_blob = new Blob([myString], {'type': "application/json"});
+	var blobUrl = URL.createObjectURL(string_blob);
+
+	// download json
+	var dLink = document.createElement("a");
+	dLink.href = blobUrl;
+	dLink.download = "save-data.json";
+	document.body.appendChild(dLink);
+	dLink.click();
+	document.body.removeChild(dLink);
 }
 
 // mousedown
@@ -179,6 +219,21 @@ function start(evt) {
 	// map inputs and transfer evt state to draw.js - draw.js handles render and model logic
 	// -> ifCurrentButtonAlreadyDown
 	// -> ifLayer (shift, alt, ctrl)
+
+	// inputs need to resolve 'context' and 'action'
+	// #context - spatial - where is the cursor? am I over a zone, a node, or both?
+	// #action - what keys/mouse are being pressed? what function is triggered?
+	// let's try for context first - delegate responsibility to individual components
+	// -- mousemove
+	// -- mouseout
+	// -- mouseover
+	/*
+		# tag 'panel:control'
+		contextTree.add({
+		});
+		contextTree.fire(evt);
+	*/
+
 	currentButton = evt.button;
 	if(evt.shiftKey) {
 		if(evt.altKey) {
@@ -208,6 +263,10 @@ function start(evt) {
 					draw.showPoint(nearestPos);
 					selectedNode = draw.createNode(nodes[selectedNode].type, currentPos, 'notdock');
 					console.log('[ DOCK ]: doing dock things onmousedown');
+				}
+				if(currentButton == 0) { // dock - ?? save json
+					console.log('[ DOCK ]: saving json string');
+					saveJson();
 				}
 			} else {
 				if(currentButton == 0) { // start line drag
@@ -318,22 +377,56 @@ function end(evt) {
 
 // mouseover
 function mouseover(event) {
+	let context = draw.context.mouseover(event);
+	let activeNodes = context.activeNodes();
+
+	console.log('ActiveNode test in MAIN');
+	console.log(JSON.stringify(activeNodes, null, "\t"));
+	/*
+	// rework all mouseover logic to be externalised in "context" module
+	let activeZones = context.activeZones();
+
+	// what entities are being returned? Model Entities!
+	// Model Entity includes setClass function()
+	// draw is responsible for class attribute manipulation
+
+	// update active nodes
+	activeNodes.forEach((node) => {
+		let styles = iconset.icons[node.kind].class;
+		if(!(event.altKey && event.ctrlKey)) {
+			if(event.altKey) {
+				node.setClass(styles.delete);
+			} else {
+				if(event.ctrlKey) {
+					node.setClass(styles.clone);
+				} else {
+					node.setClass(styles.hover);
+				}
+			}
+		} else {
+			node.setClass(styles.hover);
+		}
+	});
+
+	// update active zones
+	activeZones.forEach((zone) => {
+		if(event.shiftKey) {
+			if(event.altKey) {
+				zone.setClass("zoneDelete");
+			}
+		}
+	});
+	*/
+
 	let target = event.target
 	if(target.nodeName == "use") {
 		currentNode = target;
-		// rework logic to detect different events based on ManagedObject model
-		// move setAttribute to draw.nodes(id).status.clone();
-		// move setAttribute to draw.nodes(id).status.plain();
-		// move setAttribute to draw.nodes(id).status.delete();
-		// move setAttribute to draw.group(id).status.clone();
-		// move setAttribute to draw.group(id).status.plain();
-		// move setAttribute to draw.group(id).status.delete();
 
 		// trigger node specific actions on mouse over
 		// this will require moving logic to a 'node' object with actions
+		/*
 		let kind = nodes[target.id].type;
 		let styles = iconset.icons[kind].class;
-
 		if(!(event.altKey && event.ctrlKey)) {
 			if(event.altKey) { // works pretty well
 				target.setAttribute("class", styles.delete);
@@ -347,6 +440,7 @@ function mouseover(event) {
 		} else {
 			target.setAttribute("class", styles.mouseover);
 		}
+		*/
 	} else {
 		if(target.getAttribute('class') == 'group') {
 			currentGroup = target.getAttribute('id');
@@ -362,6 +456,33 @@ function mouseover(event) {
 
 // mouseout
 function mouseout(event) {
+	let context = draw.context.mouseout(event);
+	let inactiveNodes = context.inactiveNodes();
+
+	console.log('inActiveNode test in MAIN');
+	console.log(JSON.stringify(inactiveNodes, null, "\t"));
+	/*
+	// context to provide 4 states
+	// - active entity
+	// - active entity - last event
+	// - inactive entity
+	// - inactive entity - last event
+	// this resolves nodes that have recently become inactive
+	let context = draw.context.mouseout(event);
+	let inactiveNodes = context.inactiveNodes(true);
+	let inactiveZones = context.inactiveZones(true);
+
+	// update recent inactive node
+	inactiveNodes.forEach((node) => {
+		zone.setClass("node");
+	});
+
+	// update recent inactive zones
+	inactiveZones.forEach((zone) => {
+		zone.setClass("zone");
+	});
+	*/
+
 	let target = event.target
 	if(target.nodeName == "use") {
 		//if(nodes[target.id].type != "dock") { // look at type/tag from model
@@ -373,11 +494,11 @@ function mouseout(event) {
 	} else {
 		if(target.getAttribute('class') == 'groupDelete') {
 			currentGroup = null;
-			if(event.shiftKey) {
+			//if(event.shiftKey) {
 				//if(event.altKey) {
 					target.setAttribute("class", "group");
 				//}
-			}
+			//}
 		}
 	}
 }
