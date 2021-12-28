@@ -13,7 +13,6 @@ var currentLine = null;
 var currentZone = null;
 var currentGroup = null;
 var zonePos1 = null;
-var currentNode = null;
 var currentButton = null;
 var currentKey = null;
 var currentPoint = null;
@@ -51,6 +50,8 @@ function initHandlers(obj) {
 
 // test key trigger
 function keyDown(event) {
+	let context = draw.context;
+	let activeNode = context.activeNodes()[0];
 	if(event.defaultPrevented) {
 		return; // Do nothing if the event was already processed
 	}
@@ -64,9 +65,8 @@ function keyDown(event) {
 	if(currentGroup) { // move to draw.js
 		myGroup = document.getElementById(currentGroup);
 	}
-	if(currentNode) {
-		kind = nodes[currentNode.id].type;
-		styles = iconset.icons[kind].class;
+	if(activeNode) {
+		styles = iconset.icons[activeNode.type].class;
 	}
 	if(currentKey == 'Meta') {
 		if(myGroup) {
@@ -74,12 +74,14 @@ function keyDown(event) {
 		}
 	}
 	if(currentKey == 'Alt') {
-		if(currentNode) {
+		if(activeNode) {
+			let currentNode = document.getElementById(activeNode.id); // move into node.setClass();
 			currentNode.setAttributeNS(null, "class", styles.delete);
 		}
 	}
 	if(currentKey == 'Control') {
-		if(currentNode) {
+		if(activeNode) {
+			let currentNode = document.getElementById(activeNode.id); // move into node.setClass();
 			currentNode.setAttributeNS(null, "class", styles.clone);
 		}
 	}
@@ -96,6 +98,9 @@ function keyDown(event) {
 
 // test key trigger
 function keyUp(event) {
+	let context = draw.context;
+	let activeNode = context.activeNodes()[0];
+
 	console.log('[ KEYUP ]: ' + event.key);
 	let myGroup;
 	let kind;
@@ -103,9 +108,8 @@ function keyUp(event) {
 	if(currentGroup) { // move to draw.js
 		myGroup = document.getElementById(currentGroup);
 	}
-	if(currentNode) {
-		kind = nodes[currentNode.id].type;
-		styles = iconset.icons[kind].class;
+	if(activeNode) {
+		styles = iconset.icons[activeNode.type].class;
 	}
 	if(event.key == 'Meta') {
 		if(myGroup) {
@@ -113,12 +117,14 @@ function keyUp(event) {
 		}
 	}
 	if(event.key == 'Alt') {
-		if(currentNode) {
+		if(activeNode) {
+			let currentNode = document.getElementById(activeNode.id); // move into node.setClass();
 			currentNode.setAttributeNS(null, "class", styles.mouseover);
 		}
 	}
 	if(event.key == 'Control') {
-		if(currentNode) {
+		if(activeNode) {
+			let currentNode = document.getElementById(activeNode.id); // move into node.setClass();
 			currentNode.setAttributeNS(null, "class", styles.mouseover);
 		}
 	}
@@ -215,6 +221,9 @@ function saveJson() {
 
 // mousedown
 function start(evt) {
+	let context = draw.context;
+	let activeNode = context.activeNodes()[0];
+
 	// logic for CLICK events
 	// map inputs and transfer evt state to draw.js - draw.js handles render and model logic
 	// -> ifCurrentButtonAlreadyDown
@@ -227,12 +236,6 @@ function start(evt) {
 	// -- mousemove
 	// -- mouseout
 	// -- mouseover
-	/*
-		# tag 'panel:control'
-		contextTree.add({
-		});
-		contextTree.fire(evt);
-	*/
 
 	currentButton = evt.button;
 	if(evt.shiftKey) {
@@ -250,11 +253,11 @@ function start(evt) {
 			}
 		}
 	} else {
-		if(currentNode) {
-			selectedNode = currentNode.id;
-			let currentPos = {
-				x: currentNode.getAttribute("x"),
-				y: currentNode.getAttribute("y")
+		if(activeNode) {
+			selectedNode = activeNode.id;
+			let currentPos = { // update model.node to be node.pos.x, node.pos.y ?
+				x: activeNode.x,
+				y: activeNode.y
 			};
 			let nearestPos = grid.getNearestPoint(currentPos);
 			// check tags
@@ -279,7 +282,6 @@ function start(evt) {
 						if(evt.altKey) {
 							draw.deleteNode(selectedNode);
 							selectedNode = null;
-							currentNode = null;
 						} else {
 							if(evt.ctrlKey) {
 								selectedNode = draw.createNode(nodes[selectedNode].type, currentPos, 'clone');
@@ -342,6 +344,9 @@ function update(evt) {
 
 // finish line
 function end(evt) {
+	let context = draw.context;
+	let activeNode = context.activeNodes()[0];
+
 	console.log('[END]');
 	let currentPos = {
 		x: evt.clientX,
@@ -356,10 +361,8 @@ function end(evt) {
 	} else {
 		if(selectedNode) {
 			if((currentButton == 0) && currentLine) {
-				if(currentNode) {
-					// change currentNode from DOM object to just ID
-					let dst = currentNode.getAttribute("id");
-					draw.addLink(selectedNode, dst);
+				if(activeNode) {
+					draw.addLink(selectedNode, activeNode.id);
 				}
 				draw.deleteLink(currentLine);
 				currentLine = null;
@@ -379,36 +382,36 @@ function end(evt) {
 function mouseover(event) {
 	let context = draw.context.mouseover(event);
 	let activeNodes = context.activeNodes();
+	//let activeZones = context.activeZones();
 
-	console.log('ActiveNode test in MAIN');
-	console.log(JSON.stringify(activeNodes, null, "\t"));
-	/*
-	// rework all mouseover logic to be externalised in "context" module
-	let activeZones = context.activeZones();
-
-	// what entities are being returned? Model Entities!
-	// Model Entity includes setClass function()
-	// draw is responsible for class attribute manipulation
+	//console.log('ActiveNode test in MAIN');
+	//console.log(JSON.stringify(activeNodes, null, "\t"));
 
 	// update active nodes
 	activeNodes.forEach((node) => {
-		let styles = iconset.icons[node.kind].class;
+		let target = document.getElementById(node.id);
+		let styles = iconset.icons[node.type].class;
 		if(!(event.altKey && event.ctrlKey)) {
 			if(event.altKey) {
-				node.setClass(styles.delete);
+				target.setAttribute("class", styles.delete);
+				//node.setClass(styles.delete);
 			} else {
 				if(event.ctrlKey) {
-					node.setClass(styles.clone);
+					target.setAttribute("class", styles.clone);
+					//node.setClass(styles.clone);
 				} else {
-					node.setClass(styles.hover);
+					target.setAttribute("class", styles.mouseover);
+					//node.setClass(styles.hover);
 				}
 			}
 		} else {
-			node.setClass(styles.hover);
+			target.setAttribute("class", styles.mouseover);
+			//node.setClass(styles.hover);
 		}
 	});
 
 	// update active zones
+	/*
 	activeZones.forEach((zone) => {
 		if(event.shiftKey) {
 			if(event.altKey) {
@@ -419,32 +422,9 @@ function mouseover(event) {
 	*/
 
 	let target = event.target
-	if(target.nodeName == "use") {
-		currentNode = target;
-
-		// trigger node specific actions on mouse over
-		// this will require moving logic to a 'node' object with actions
-		/*
-		let kind = nodes[target.id].type;
-		let styles = iconset.icons[kind].class;
-		if(!(event.altKey && event.ctrlKey)) {
-			if(event.altKey) { // works pretty well
-				target.setAttribute("class", styles.delete);
-			} else {
-				if(event.ctrlKey) { // works pretty well
-					target.setAttribute("class", styles.clone);
-				} else {
-					target.setAttribute("class", styles.mouseover);
-				}
-			}
-		} else {
-			target.setAttribute("class", styles.mouseover);
-		}
-		*/
-	} else {
+	if(target.nodeName != "use") {
 		if(target.getAttribute('class') == 'group') {
 			currentGroup = target.getAttribute('id');
-			//console.log('META - switch class:: ALT:' + event.altKey + ' SHIFT:' + event.shiftKey);
 			if(event.shiftKey) {
 				if(event.altKey) {
 					target.setAttribute("class", "groupDelete");
@@ -458,25 +438,20 @@ function mouseover(event) {
 function mouseout(event) {
 	let context = draw.context.mouseout(event);
 	let inactiveNodes = context.inactiveNodes();
+	//let inactiveZones = context.activeZones();
 
-	console.log('inActiveNode test in MAIN');
-	console.log(JSON.stringify(inactiveNodes, null, "\t"));
-	/*
-	// context to provide 4 states
-	// - active entity
-	// - active entity - last event
-	// - inactive entity
-	// - inactive entity - last event
-	// this resolves nodes that have recently become inactive
-	let context = draw.context.mouseout(event);
-	let inactiveNodes = context.inactiveNodes(true);
-	let inactiveZones = context.inactiveZones(true);
+	//console.log('inActiveNode test in MAIN');
+	//console.log(JSON.stringify(inactiveNodes, null, "\t"));
 
 	// update recent inactive node
 	inactiveNodes.forEach((node) => {
-		zone.setClass("node");
+		let target = document.getElementById(node.id);
+		let styles = iconset.icons[node.type].class;
+		target.setAttribute("class", styles.mouseout);
+		//node.setClass("node");
 	});
 
+	/*
 	// update recent inactive zones
 	inactiveZones.forEach((zone) => {
 		zone.setClass("zone");
@@ -484,21 +459,10 @@ function mouseout(event) {
 	*/
 
 	let target = event.target
-	if(target.nodeName == "use") {
-		//if(nodes[target.id].type != "dock") { // look at type/tag from model
-			currentNode = null;
-			let kind = nodes[target.id].type;
-			let style = iconset.icons[kind].class.mouseout;
-			target.setAttribute("class", style);
-		//}
-	} else {
+	if(target.nodeName != "use") {
 		if(target.getAttribute('class') == 'groupDelete') {
 			currentGroup = null;
-			//if(event.shiftKey) {
-				//if(event.altKey) {
-					target.setAttribute("class", "group");
-				//}
-			//}
+			target.setAttribute("class", "group");
 		}
 	}
 }

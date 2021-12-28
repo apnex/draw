@@ -30,7 +30,7 @@ class Context {
 			}
 		}).reduce((nodes, node) => {
 			if(this.model.nodes[node.id]) { // handles null values
-				nodes.push(node);
+				nodes.push(this.model.nodes[node.id]);
 			} else {
 				delete(this.state.nodes[node.id]); // clean stale node from local state
 			}
