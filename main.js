@@ -10,8 +10,6 @@ var linkGroup = document.getElementById('links');
 var gridGroup = document.getElementById('grid');
 var defs = document.getElementById('defs');
 var currentLine = null;
-var currentZone = null;
-var currentGroup = null;
 var zonePos1 = null;
 var currentButton = null;
 var currentKey = null;
@@ -28,11 +26,11 @@ init();
 // attach handlers
 function initHandlers(obj) {
 	let listeners = {
-		"mouseup"	: (event) => { end(event); },
-		"mousedown"	: (event) => { start(event); },
-		"mousemove"	: (event) => { update(event); },
+		"mousedown"	: (event) => { mousedown(event); },
+		"mousemove"	: (event) => { mousemove(event); },
+		"mouseup"	: (event) => { mouseup(event); },
 		"mouseover"	: (event) => { mouseover(event); },
-		"mouseout"	: (event) => { mouseout(event); },
+		"mouseout"	: (event) => { mouseout(event); }
 		//"mouseenter":	"hilight(evt)",
 		//"mouseleave":	"hilight(evt)"
 	}
@@ -52,6 +50,8 @@ function initHandlers(obj) {
 function keyDown(event) {
 	let context = draw.context;
 	let activeNode = context.activeNodes()[0];
+	let activeZone = context.activeZones()[0];
+
 	if(event.defaultPrevented) {
 		return; // Do nothing if the event was already processed
 	}
@@ -59,18 +59,15 @@ function keyDown(event) {
 	// consider using persistent 'layers' mapped to 1-4 keys - use shift+1 for layer 1 - default plain shift to 1
 	currentKey = event.key;
 	console.log('CURRENTKEY: ' + event.key);
-	let myGroup;
-	let kind;
+
 	let styles;
-	if(currentGroup) { // move to draw.js
-		myGroup = document.getElementById(currentGroup);
-	}
 	if(activeNode) {
 		styles = iconset.icons[activeNode.type].class;
 	}
 	if(currentKey == 'Meta') {
-		if(myGroup) {
-			myGroup.setAttribute("class", "groupDelete");
+		if(activeZone) {
+			let myGroup = document.getElementById(activeZone.id); // move into zone.setClass();
+			myGroup.setAttribute("class", "zoneDelete");
 		}
 	}
 	if(currentKey == 'Alt') {
@@ -87,9 +84,10 @@ function keyDown(event) {
 	}
 	if(currentKey == 'Shift') {
 		draw.showGrid();
-		if(myGroup) {
+		if(activeZone) {
 			if(event.altKey) {
-				myGroup.setAttribute("class", "groupDelete");
+				let myGroup = document.getElementById(activeZone.id); // move into zone.setClass();
+				myGroup.setAttribute("class", "zoneDelete");
 			}
 		}
 	}
@@ -100,20 +98,17 @@ function keyDown(event) {
 function keyUp(event) {
 	let context = draw.context;
 	let activeNode = context.activeNodes()[0];
+	let activeZone = context.activeZones()[0];
 
 	console.log('[ KEYUP ]: ' + event.key);
-	let myGroup;
-	let kind;
 	let styles;
-	if(currentGroup) { // move to draw.js
-		myGroup = document.getElementById(currentGroup);
-	}
 	if(activeNode) {
 		styles = iconset.icons[activeNode.type].class;
 	}
 	if(event.key == 'Meta') {
-		if(myGroup) {
-			myGroup.setAttribute("class", "group");
+		if(activeZone) {
+			let myGroup = document.getElementById(activeZone.id); // move into zone.setClass();
+			myGroup.setAttribute("class", "zone");
 		}
 	}
 	if(event.key == 'Alt') {
@@ -130,8 +125,10 @@ function keyUp(event) {
 	}
 	if(event.key == 'Shift') {
 		draw.hideGrid();
-		if(myGroup) {
-			myGroup.setAttribute("class", "group");
+		draw.deleteZone('liveZone');
+		if(activeZone) {
+			let myGroup = document.getElementById(activeZone.id); // move into zone.setClass();
+			myGroup.setAttribute("class", "zone");
 		}
 	}
 	currentKey = null;
@@ -220,9 +217,10 @@ function saveJson() {
 }
 
 // mousedown
-function start(evt) {
+function mousedown(evt) {
 	let context = draw.context;
 	let activeNode = context.activeNodes()[0];
+	let activeZone = context.activeZones()[0];
 
 	// logic for CLICK events
 	// map inputs and transfer evt state to draw.js - draw.js handles render and model logic
@@ -233,15 +231,13 @@ function start(evt) {
 	// #context - spatial - where is the cursor? am I over a zone, a node, or both?
 	// #action - what keys/mouse are being pressed? what function is triggered?
 	// let's try for context first - delegate responsibility to individual components
-	// -- mousemove
-	// -- mouseout
-	// -- mouseover
-
 	currentButton = evt.button;
 	if(evt.shiftKey) {
 		if(evt.altKey) {
-			console.log('[ LAYER-01 ] - Delete Group');
-			draw.deleteZone(currentGroup);
+			if(activeZone) { // handle no zone active
+				console.log('[ LAYER-01 ] - Delete Zone');
+				draw.deleteZone(activeZone.id);
+			}
 		} else {
 			if(currentButton == 0) { // left-click
 				console.log('[ LAYER-01 ] - Create Group');
@@ -249,7 +245,7 @@ function start(evt) {
 					x: evt.clientX,
 					y: evt.clientY
 				});
-				currentZone = draw.createZone(zonePos1, 'liveZone');
+				draw.createZone(zonePos1, 'liveZone');
 			}
 		}
 	} else {
@@ -302,8 +298,8 @@ function start(evt) {
 	}
 }
 
-// update line
-function update(evt) {
+// update line/node/group
+function mousemove(evt) {
 	let currentPos = {
 		x: evt.clientX,
 		y: evt.clientY
@@ -327,25 +323,21 @@ function update(evt) {
 		}
 	} else {
 		if(evt.shiftKey) {
+			let currentZone = document.getElementById('liveZone');
 			if(currentButton == 0 && currentZone) { // left button
 				console.log('Update ZONE Draw');
-				draw.updateZone(currentZone, zonePos1, currentPos);
+				draw.updateZone('liveZone', zonePos1, currentPos);
 			}
 			draw.updateGroupPoint(currentPos);
-			/* might adjust to have 2 points? a start point and end point - visual change
-			} else {
-				console.log('No node selected - updating point: ' + currentButton);
-				draw.updateGroupPoint(currentPos);
-			}
-			*/
 		}
 	}
 }
 
-// finish line
-function end(evt) {
+// commit update
+function mouseup(evt) {
 	let context = draw.context;
 	let activeNode = context.activeNodes()[0];
+	let activeZone = context.activeZones()[0];
 
 	console.log('[END]');
 	let currentPos = {
@@ -353,10 +345,10 @@ function end(evt) {
 		y: evt.clientY
 	};
 	if(evt.shiftKey) {
+		let currentZone = document.getElementById('liveZone');
 		if(currentZone) {
 			let zonePos2 = grid.getNearestGroupPoint(currentPos);
-			draw.commitZone(currentZone, zonePos1, zonePos2);
-			currentZone = null;
+			draw.commitZone('liveZone', zonePos1, zonePos2);
 		}
 	} else {
 		if(selectedNode) {
@@ -382,15 +374,12 @@ function end(evt) {
 function mouseover(event) {
 	let context = draw.context.mouseover(event);
 	let activeNodes = context.activeNodes();
-	//let activeZones = context.activeZones();
-
-	//console.log('ActiveNode test in MAIN');
-	//console.log(JSON.stringify(activeNodes, null, "\t"));
+	let activeZones = context.activeZones();
 
 	// update active nodes
-	activeNodes.forEach((node) => {
-		let target = document.getElementById(node.id);
-		let styles = iconset.icons[node.type].class;
+	activeNodes.forEach((entity) => {
+		let target = document.getElementById(entity.id);
+		let styles = iconset.icons[entity.type].class;
 		if(!(event.altKey && event.ctrlKey)) {
 			if(event.altKey) {
 				target.setAttribute("class", styles.delete);
@@ -411,58 +400,37 @@ function mouseover(event) {
 	});
 
 	// update active zones
-	/*
-	activeZones.forEach((zone) => {
+	activeZones.forEach((entity) => {
+		let target = document.getElementById(entity.id);
 		if(event.shiftKey) {
 			if(event.altKey) {
-				zone.setClass("zoneDelete");
+				target.setAttribute("class", "zoneDelete");
+				//zone.setClass("zoneDelete");
 			}
+		} else {
+			target.setAttribute("class", "zoneActive");
 		}
 	});
-	*/
-
-	let target = event.target
-	if(target.nodeName != "use") {
-		if(target.getAttribute('class') == 'group') {
-			currentGroup = target.getAttribute('id');
-			if(event.shiftKey) {
-				if(event.altKey) {
-					target.setAttribute("class", "groupDelete");
-				}
-			}
-		}
-	}
 }
 
 // mouseout
 function mouseout(event) {
 	let context = draw.context.mouseout(event);
 	let inactiveNodes = context.inactiveNodes();
-	//let inactiveZones = context.activeZones();
-
-	//console.log('inActiveNode test in MAIN');
-	//console.log(JSON.stringify(inactiveNodes, null, "\t"));
+	let inactiveZones = context.inactiveZones();
 
 	// update recent inactive node
-	inactiveNodes.forEach((node) => {
-		let target = document.getElementById(node.id);
-		let styles = iconset.icons[node.type].class;
+	inactiveNodes.forEach((entity) => {
+		let target = document.getElementById(entity.id);
+		let styles = iconset.icons[entity.type].class;
 		target.setAttribute("class", styles.mouseout);
 		//node.setClass("node");
 	});
 
-	/*
 	// update recent inactive zones
-	inactiveZones.forEach((zone) => {
-		zone.setClass("zone");
+	inactiveZones.forEach((entity) => {
+		let target = document.getElementById(entity.id);
+		target.setAttribute("class", "zone");
+		//zone.setClass("zone");
 	});
-	*/
-
-	let target = event.target
-	if(target.nodeName != "use") {
-		if(target.getAttribute('class') == 'groupDelete') {
-			currentGroup = null;
-			target.setAttribute("class", "group");
-		}
-	}
 }

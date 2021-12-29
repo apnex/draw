@@ -17,30 +17,39 @@ class Context {
 			links: {}
 		};
 	}
-	activeNodes(active = true, recent = true) {
-		return this.getNodes(true, true);
+	activeNodes(active = true, recent = true, kind = 'nodes') {
+		return this.getEntities(active, recent, kind);
 	}
-	inactiveNodes(active = false, recent = true) {
-		return this.getNodes(false, true);
+	inactiveNodes(active = false, recent = true, kind = 'nodes') {
+		return this.getEntities(active, recent, kind);
 	}
-	getNodes(active = true, recent = true) {
-		return Object.values(this.state.nodes).filter((node) => {
-			if(node.active == active && node.recent == recent) {
+	activeZones(active = true, recent = true, kind = 'zones') {
+		return this.getEntities(active, recent, kind);
+	}
+	inactiveZones(active = false, recent = true, kind = 'zones') {
+		return this.getEntities(active, recent, kind);
+	}
+	getEntities(active = true, recent = true, kind = 'nodes') {
+		let lEntities = this.state[kind];
+		let mEntities = this.model[kind];
+		return Object.values(lEntities).filter((entity) => {
+			if(entity.active == active && entity.recent == recent) {
 				return true;
 			}
-		}).reduce((nodes, node) => {
-			if(this.model.nodes[node.id]) { // handles null values
-				nodes.push(this.model.nodes[node.id]);
+		}).reduce((result, entity) => {
+			if(mEntities[entity.id]) { // handles null values
+				result.push(mEntities[entity.id]);
 			} else {
-				delete(this.state.nodes[node.id]); // clean stale node from local state
+				delete(lEntities[entity.id]); // clean stale node from local state
 			}
-			return nodes;
+			return result;
 		}, []);
 	}
+
 	mouseover(event) {
 		let target = event.target
 
-		// update local state
+		// nodes - update local state
 		if(this.model.nodes[target.id]) {
 			Object.keys(this.model.nodes).forEach((id) => {
 				if(!this.state.nodes[id]) {
@@ -55,11 +64,33 @@ class Context {
 			});
 		}
 
-		// check if target exists in local state and update active + recent
+		// nodes - check if target exists in local state and update active + recent
 		if(this.state.nodes[target.id]) {
 			this.state.nodes[target.id].active = true;
 			this.state.nodes[target.id].recent = true;
 		}
+
+		// zones - update local state
+		if(this.model.zones[target.id]) {
+			Object.keys(this.model.zones).forEach((id) => {
+				if(!this.state.zones[id]) {
+					this.state.zones[id] = {
+						id,
+						active: false,
+						recent: false
+					};
+				} else {
+					this.state.zones[id].recent = false;
+				}
+			});
+		}
+
+		// zones - check if target exists in local state and update active + recent
+		if(this.state.zones[target.id]) {
+			this.state.zones[target.id].active = true;
+			this.state.zones[target.id].recent = true;
+		}
+
 		//console.log('CONTEXT test - mouseover triggered - NAME: ' + target.nodeName + ' ID: ' + target.id);
 		return this;
 	}
@@ -70,6 +101,11 @@ class Context {
 		if(this.state.nodes[target.id]) {
 			this.state.nodes[target.id].active = false;
 			this.state.nodes[target.id].recent = true;
+		}
+
+		if(this.state.zones[target.id]) {
+			this.state.zones[target.id].active = false;
+			this.state.zones[target.id].recent = true;
 		}
 		//console.log('CONTEXT test - mouseout triggered - NAME: ' + target.nodeName + ' ID: ' + target.id);
 		return this;

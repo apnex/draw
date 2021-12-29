@@ -123,7 +123,7 @@ class Draw {
 		console.log('[ DRAW ]: createBox: ID[' + id + '] SRC ' + pos.x + ':' + pos.y);
 		groups.zones.appendChild(this.createShape('rect', {
 			"id"	: id,
-			"class"	: 'group',
+			"class"	: 'zone',
 			"x"	: pos.x,
 			"y"	: pos.y,
 			width, height
@@ -173,7 +173,7 @@ class Draw {
 		return zone;
 	}
 	commitZone(id, pos1, pos2) {
-		this.deleteZone(id); // remove temp liveBox
+		this.deleteZone(id); // remove temp liveZone
 		let model = this.state.model;
 		let zoneSize = this.resolveBox(pos1, pos2); // mode to ManagedObject(zone)
 		if(!(zoneSize.width == 0 || zoneSize.height == 0)) { // check if valid, then add to model+page
@@ -182,8 +182,13 @@ class Draw {
 		}
 	}
 	deleteZone(id) {
+		let model = this.state.model;
 		let groups = this.state.groups;
-		groups.zones.removeChild(document.getElementById(id));
+		let zone = document.getElementById(id);
+		if(zone) { // validate zone exists before delete
+			groups.zones.removeChild(zone);
+			return model.deleteZone(id);
+		}
 	}
 	createNode(kind, pos, tag) {
 		// creates new node in model and renders to canvas
