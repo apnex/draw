@@ -9,41 +9,46 @@ class Context {
 			id: 5.159345,
 			active: true,
 			recent: true
+			update: true
 		}
 		*/
-		// have active/recent tags get updated in model
 		this.state = {
 			nodes: {},
 			zones: {},
 			links: {}
 		};
 	}
-	activeNodes(active = true, recent = true, kind = 'nodes') {
-		return this.getEntities(active, recent, kind);
+	activeNodes(active = true, recent = true, update = true, kind = 'nodes') {
+		return this.getEntities(active, recent, update, kind);
 	}
-	inactiveNodes(active = false, recent = true, kind = 'nodes') {
-		return this.getEntities(active, recent, kind);
+	activeZones(active = true, recent = true, update = true, kind = 'zones') {
+		return this.getEntities(active, recent, update, kind);
 	}
-	activeZones(active = true, recent = true, kind = 'zones') {
-		return this.getEntities(active, recent, kind);
+	updateNodes(active = false, recent = true, update = true, kind = 'nodes') {
+		return this.getEntities(active, recent, update, kind);
 	}
-	inactiveZones(active = false, recent = true, kind = 'zones') {
-		return this.getEntities(active, recent, kind);
+	updateZones(active = false, recent = true, update = true, kind = 'zones') {
+		return this.getEntities(active, recent, update, kind);
 	}
-	getEntities(active = true, recent = true, kind = 'nodes') {
+	getEntities(active = true, recent = true, update = true, kind = 'nodes') {
 		let lEntities = this.state[kind];
 		let mEntities = this.model[kind];
 		return Object.values(lEntities).filter((entity) => {
-			if(entity.active == active && entity.recent == recent) {
+			if(entity.active == active && entity.recent == recent && entity.update == update) {
 				return true;
 			}
 		}).reduce((result, entity) => {
 			if(mEntities[entity.id]) { // handles null values
 				let managedEntity = mEntities[entity.id];
-				managedEntity.setClass = function(style) {
+				managedEntity.setClass = function(style) { // managedEntity to be controlled by draw?
 					//console.log('setClass[ ' + style + ' ] on Entity: ' + this.id);
 					let currentEntity = document.getElementById(entity.id); // move into node.setClass();
 					currentEntity.setAttributeNS(null, "class", style);
+				}
+				managedEntity.setTag = function(key, value) {
+					//console.log('setTag[ ' + key + ':' + value + ' ] on Entity: ' + this.id);
+					//this.tags.update = false; // should this sit inside model?
+					lEntities[this.id].update = false;
 				}
 				result.push(mEntities[entity.id]);
 			} else {
@@ -52,9 +57,41 @@ class Context {
 			return result;
 		}, []);
 	}
-
 	mouseover(event) {
 		let target = event.target
+		/*
+		// nodes - update state
+		if(this.model.nodes[target.id]) {
+			Object.values(this.model.nodes).forEach((entity) => {
+				entity.tags.recent = false;
+				if(typeof(entity.tags.active) == 'undefined') {
+					entity.tags.active = false
+				}
+				if(typeof(entity.tags.update) == 'undefined') {
+					entity.tags.update = false
+				}
+			});
+			this.model.nodes[target.id].tags.active = true;
+			this.model.nodes[target.id].tags.recent = true;
+			this.model.nodes[target.id].tags.update = true;
+		}
+
+		// zones - update state
+		if(this.model.zones[target.id]) {
+			Object.values(this.model.zones).forEach((entity) => {
+				entity.tags.recent = false;
+				if(typeof(entity.tags.active) == 'undefined') {
+					entity.tags.active = false
+				}
+				if(typeof(entity.tags.update) == 'undefined') {
+					entity.tags.update = false
+				}
+			});
+			this.model.zones[target.id].tags.active = true;
+			this.model.zones[target.id].tags.recent = true;
+			this.model.zones[target.id].tags.update = true;
+		}
+		*/
 
 		// nodes - update local state
 		if(this.model.nodes[target.id]) {
@@ -63,7 +100,8 @@ class Context {
 					this.state.nodes[id] = {
 						id,
 						active: false,
-						recent: false
+						recent: false,
+						update: false
 					};
 				} else {
 					this.state.nodes[id].recent = false;
@@ -71,6 +109,7 @@ class Context {
 			});
 			this.state.nodes[target.id].active = true;
 			this.state.nodes[target.id].recent = true;
+			this.state.nodes[target.id].update = true;
 		}
 
 		// zones - update local state
@@ -80,7 +119,8 @@ class Context {
 					this.state.zones[id] = {
 						id,
 						active: false,
-						recent: false
+						recent: false,
+						update: false
 					};
 				} else {
 					this.state.zones[id].recent = false;
@@ -88,6 +128,7 @@ class Context {
 			});
 			this.state.zones[target.id].active = true;
 			this.state.zones[target.id].recent = true;
+			this.state.zones[target.id].update = true;
 		}
 
 		//console.log('CONTEXT test - mouseover triggered - NAME: ' + target.nodeName + ' ID: ' + target.id);
@@ -95,16 +136,19 @@ class Context {
 	}
 	mouseout(event) {
 		let target = event.target
+		// context.js is to have no knowledge of document canvas, purely state - up to main.js to handle it
 
 		// check if target exists in local state and update active + recent
 		if(this.state.nodes[target.id]) {
 			this.state.nodes[target.id].active = false;
 			this.state.nodes[target.id].recent = true;
+			this.state.nodes[target.id].update = true;
 		}
 
 		if(this.state.zones[target.id]) {
 			this.state.zones[target.id].active = false;
 			this.state.zones[target.id].recent = true;
+			this.state.zones[target.id].update = true;
 		}
 		//console.log('CONTEXT test - mouseout triggered - NAME: ' + target.nodeName + ' ID: ' + target.id);
 		return this;

@@ -31,8 +31,8 @@ function initHandlers(obj) {
 		"mouseup"	: (event) => { mouseup(event); },
 		"mouseover"	: (event) => { mouseover(event); },
 		"mouseout"	: (event) => { mouseout(event); }
-		//"mouseenter":	"hilight(evt)",
-		//"mouseleave":	"hilight(evt)"
+		//"mouseenter":	"hilight(event)",
+		//"mouseleave":	"hilight(event)"
 	}
 	Object.entries(listeners).forEach((entry) => {
 		obj.addEventListener(entry[0], entry[1]);
@@ -177,7 +177,7 @@ function init() {
 		'export',
 		'waypoint'
 	].forEach((icon, x) => {
-		draw.createNode(icon, {x, y: 1}, 'control');
+		draw.createNode(icon, {x, y: 1}, 'dock');
 	});
 	draw.createZone2({
 		id	: 'controlPanel',
@@ -204,7 +204,7 @@ function saveJson() {
 }
 
 // mousedown
-function mousedown(evt) {
+function mousedown(event) {
 	let context = draw.context;
 	let activeNode = context.activeNodes()[0];
 	let activeZone = context.activeZones()[0];
@@ -218,9 +218,9 @@ function mousedown(evt) {
 	// #context - spatial - where is the cursor? am I over a zone, a node, or both?
 	// #action - what keys/mouse are being pressed? what function is triggered?
 	// let's try for context first - delegate responsibility to individual components
-	currentButton = evt.button;
-	if(evt.shiftKey) {
-		if(evt.altKey) {
+	currentButton = event.button;
+	if(event.shiftKey) {
+		if(event.altKey) {
 			if(activeZone) { // handle no zone active
 				console.log('[ LAYER-01 ] - Delete Zone');
 				draw.deleteZone(activeZone.id);
@@ -229,8 +229,8 @@ function mousedown(evt) {
 			if(currentButton == 0) { // left-click
 				console.log('[ LAYER-01 ] - Create Group');
 				zonePos1 = grid.getNearestGroupPoint({
-					x: evt.clientX,
-					y: evt.clientY
+					x: event.clientX,
+					y: event.clientY
 				});
 				draw.createZone(zonePos1, 'liveZone');
 			}
@@ -256,17 +256,17 @@ function mousedown(evt) {
 				}
 			} else {
 				if(currentButton == 0) { // start line drag
-					console.log('Start event: ' + evt + ' button: ' + currentButton + ' nodepos: ' + currentPos.x + ':' + currentPos.y);
+					console.log('Start event: ' + event + ' button: ' + currentButton + ' nodepos: ' + currentPos.x + ':' + currentPos.y);
 					currentLine = draw.createLink(currentPos);
 				}
 				if(currentButton == 2) { // node on canvas
-					if(!(evt.altKey && evt.ctrlKey)) { // rework logic for simpler events
+					if(!(event.altKey && event.ctrlKey)) { // rework logic for simpler events
 						draw.showPoint(nearestPos);
-						if(evt.altKey) {
+						if(event.altKey) {
 							draw.deleteNode(selectedNode);
 							selectedNode = null;
 						} else {
-							if(evt.ctrlKey) {
+							if(event.ctrlKey) {
 								selectedNode = draw.createNode(nodes[selectedNode].type, currentPos, 'clone');
 								console.log('[ CLONE ]: cloning current NODE with CTRL+Right-Click');
 							}
@@ -286,10 +286,10 @@ function mousedown(evt) {
 }
 
 // update line/node/group
-function mousemove(evt) {
+function mousemove(event) {
 	let currentPos = {
-		x: evt.clientX,
-		y: evt.clientY
+		x: event.clientX,
+		y: event.clientY
 	};
 	if(selectedNode) {
 		if(nodes[selectedNode].tag == "dock") { // check if dock
@@ -309,10 +309,9 @@ function mousemove(evt) {
 			}
 		}
 	} else {
-		if(evt.shiftKey) {
+		if(event.shiftKey) {
 			let currentZone = document.getElementById('liveZone');
 			if(currentButton == 0 && currentZone) { // left button
-				console.log('Update ZONE Draw');
 				draw.updateZone('liveZone', zonePos1, currentPos);
 			}
 			draw.updateGroupPoint(currentPos);
@@ -321,17 +320,15 @@ function mousemove(evt) {
 }
 
 // commit update
-function mouseup(evt) {
+function mouseup(event) {
 	let context = draw.context;
 	let activeNode = context.activeNodes()[0];
 	let activeZone = context.activeZones()[0];
-
-	console.log('[END]');
 	let currentPos = {
-		x: evt.clientX,
-		y: evt.clientY
+		x: event.clientX,
+		y: event.clientY
 	};
-	if(evt.shiftKey) {
+	if(event.shiftKey) {
 		let currentZone = document.getElementById('liveZone');
 		if(currentZone) {
 			let zonePos2 = grid.getNearestGroupPoint(currentPos);
@@ -359,6 +356,7 @@ function mouseup(evt) {
 
 // mouseover
 function mouseover(event) {
+	//console.log('MAIN.MOUSEOVER target: ' + event.target.id);
 	let context = draw.context.mouseover(event);
 	let activeNodes = context.activeNodes();
 	let activeZones = context.activeZones();
@@ -385,31 +383,31 @@ function mouseover(event) {
 	activeZones.forEach((entity) => {
 		if(event.shiftKey) {
 			if(event.altKey) {
-				entity.setClass("zoneDelete");
+				entity.setClass('zoneDelete');
 			}
 		} else {
-			entity.setClass("zoneActive");
+			entity.setClass('zoneActive');
 		}
 	});
 }
 
 // mouseout
 function mouseout(event) {
+	//console.log('MAIN.MOUSEOUT target: ' + event.target.id);
 	let context = draw.context.mouseout(event);
-	let inactiveNodes = context.inactiveNodes();
-	let inactiveZones = context.inactiveZones();
+	let updateNodes = context.updateNodes();
+	let updateZones = context.updateZones();
 
-	// hack for canvas short-circuit
-	if(event.target.id != 'canvas') {
-		// update recent inactive node
-		inactiveNodes.forEach((entity) => {
-			let styles = iconset.icons[entity.type].class;
-			entity.setClass(styles.mouseout);
-		});
+	// update nodes
+	updateNodes.forEach((entity) => {
+		let styles = iconset.icons[entity.type].class;
+		entity.setClass(styles.mouseout);
+		entity.setTag('update', false);
+	});
 
-		// update recent inactive zones
-		inactiveZones.forEach((entity) => {
-			entity.setClass("zone");
-		});
-	}
+	// update zones
+	updateZones.forEach((entity) => {
+		entity.setClass('zone');
+		entity.setTag('update', false);
+	});
 }

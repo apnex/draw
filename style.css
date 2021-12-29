@@ -61,21 +61,21 @@
 .zone {
 	rx		: 6px;
 	stroke		: #ddddff;
-	stroke-width	: 4;
+	stroke-width	: 3;
 	fill		: #ddddff;
 	fill-opacity	: 0.3;
 }
 .zoneDelete {
 	rx		: 6px;
 	stroke		: #e57373;
-	stroke-width	: 4;
+	stroke-width	: 3;
 	fill		: #e57373;
 	fill-opacity	: 0.3;
 }
 .zoneActive {
 	rx		: 6px;
 	stroke		: #aed581;
-	stroke-width	: 4;
+	stroke-width	: 3;
 	fill		: #aed581;
 	fill-opacity	: 0.3;
 }

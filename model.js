@@ -41,7 +41,8 @@ class Model {
 			"type"	: 'zone',
 			"tag"	: tag,
 			"pos1"	: pos1,
-			"pos2"	: pos2
+			"pos2"	: pos2,
+			"tags"	: {}
 		};
 		//console.log(JSON.stringify(this.state, null, "\t"));
 		return id;
@@ -99,7 +100,8 @@ class Model {
 				"id"	: id,
 				"type"	: 'active',
 				"src"	: src,
-				"dst"	: dst
+				"dst"	: dst,
+				"tags"	: {}
 			};
 			if(!nodes[src].links[id]) {
 				nodes[src].links[id] = {
