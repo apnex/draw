@@ -1,3 +1,4 @@
+import ky from './lib/ky.min.js';
 import grid from './grid.js';
 import model from './model.js';
 import iconset from './iconset.js';
@@ -122,7 +123,7 @@ function keyUp(event) {
 }
 
 // draw initial icons
-function init() {
+async function init() {
 	// load iconset
 	[
 		'host',
@@ -162,7 +163,8 @@ function init() {
 		'vxlan',
 		'router'
 	].forEach((icon, x) => {
-		draw.createNode(icon, {x, y: 0}, 'dock');
+		draw.createNode(icon, grid.getCoord({x, y: 0}), 'dock'); // need to adjust to be cell coord, not raw x,y
+		//draw.createNode(icon, {x, y: 0}, 'dock');
 	});
 	draw.createZone2({
 		id	: 'dockPanel',
@@ -177,7 +179,8 @@ function init() {
 		'export',
 		'waypoint'
 	].forEach((icon, x) => {
-		draw.createNode(icon, {x, y: 1}, 'dock');
+		draw.createNode(icon, grid.getCoord({x, y: 1}), 'dock'); // need to adjust to be cell coord, not raw x,y
+		//draw.createNode(icon, {x, y: 1}, 'dock');
 	});
 	draw.createZone2({
 		id	: 'controlPanel',
@@ -186,21 +189,16 @@ function init() {
 		end	: {x: 1, y: 1},
 		tags	: []
 	});
-}
 
-function saveJson() {
-	// generate new model string blob
-	let myString = JSON.stringify(model.state, null, "\t");
-	let string_blob = new Blob([myString], {'type': "application/json"});
-	var blobUrl = URL.createObjectURL(string_blob);
-
-	// download json
-	var dLink = document.createElement("a");
-	dLink.href = blobUrl;
-	dLink.download = "save-data.json";
-	document.body.appendChild(dLink);
-	dLink.click();
-	document.body.removeChild(dLink);
+	// test diagram load
+	/*
+	console.log('Loading Model [ /examples/test.json');
+	let newModel = await ky.get('/examples/test.json').json();
+	console.log('Loading Model [ /examples/test.json - DONE!');
+	//console.log(JSON.stringify(newModel, null, "\t"));
+	draw.importDiagram(newModel);
+	*/
+	//model.import(newModel); ??
 }
 
 // mousedown
@@ -252,7 +250,7 @@ function mousedown(event) {
 				}
 				if(currentButton == 0) { // dock - ?? save json
 					console.log('[ DOCK ]: saving json string');
-					saveJson();
+					draw.exportDiagram();
 				}
 			} else {
 				if(currentButton == 0) { // start line drag

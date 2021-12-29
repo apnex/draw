@@ -6,11 +6,10 @@ Does not handle DOM listener events
 
 // main class
 import contextFactory from './context.js';
+import loader from './loader.js';
 class Draw {
 	constructor(model, layout, iconset) {
 		console.log('INIT new { DRAW }');
-		//import grid from './grid.js';
-		//import model from './model.js';
 		this.state = {
 			model: model,
 			layout: layout,
@@ -62,6 +61,12 @@ class Draw {
 		// create and hide group point
 		//this.hideGroupPoint();
 		this.createGroupPoint({x: 0, y: 0});
+	}
+	importDiagram(spec) {
+		loader.importDiagram(this, spec);
+	}
+	exportDiagram(fileName = 'diagram-save.js') {
+		loader.exportDiagram(this.state.model.state, fileName);
 	}
 	addLink(src, dst) {
 		let model = this.state.model;
@@ -138,7 +143,7 @@ class Draw {
 		let layout = this.state.layout;
 		let start = layout.getCoord(spec.start);
 		let end = layout.getCoord(spec.end);
-		console.log('ZoneSpec: ' + JSON.stringify(spec,null, "\t"));
+		//console.log('ZoneSpec: ' + JSON.stringify(spec,null, "\t"));
 		groups.zones.appendChild(this.createShape('rect', {
 			"id"		: spec.id,
 			"class"		: spec.class,
@@ -203,8 +208,10 @@ class Draw {
 		// retrieve individual icon and style properties
 		groups.nodes.appendChild(this.createUse(kind, {
 			"id"	: id,
-			"x"	: layout.getCoord(pos).x,
-			"y"	: layout.getCoord(pos).y,
+			//"x"	: layout.getCoord(pos).x,
+			//"y"	: layout.getCoord(pos).y,
+			"x"	: pos.x, // need to update to consistently refer to cell location, not raw screen x,y
+			"y"	: pos.y,
 			"class"	: iconset.icons[kind].class.mouseout
 		}));
 		return id;
