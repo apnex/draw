@@ -3,6 +3,7 @@ class Context {
 	constructor(document, model) {
 		console.log('INIT new { CONTEXT }');
 		this.model = model;
+		//this.document = document;
 		/*
 		node = {
 			id: 5.159345,
@@ -38,6 +39,12 @@ class Context {
 			}
 		}).reduce((result, entity) => {
 			if(mEntities[entity.id]) { // handles null values
+				let managedEntity = mEntities[entity.id];
+				managedEntity.setClass = function(style) {
+					//console.log('setClass[ ' + style + ' ] on Entity: ' + this.id);
+					let currentEntity = document.getElementById(entity.id); // move into node.setClass();
+					currentEntity.setAttributeNS(null, "class", style);
+				}
 				result.push(mEntities[entity.id]);
 			} else {
 				delete(lEntities[entity.id]); // clean stale node from local state
@@ -62,10 +69,6 @@ class Context {
 					this.state.nodes[id].recent = false;
 				}
 			});
-		}
-
-		// nodes - check if target exists in local state and update active + recent
-		if(this.state.nodes[target.id]) {
 			this.state.nodes[target.id].active = true;
 			this.state.nodes[target.id].recent = true;
 		}
@@ -83,10 +86,6 @@ class Context {
 					this.state.zones[id].recent = false;
 				}
 			});
-		}
-
-		// zones - check if target exists in local state and update active + recent
-		if(this.state.zones[target.id]) {
 			this.state.zones[target.id].active = true;
 			this.state.zones[target.id].recent = true;
 		}

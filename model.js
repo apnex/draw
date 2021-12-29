@@ -43,7 +43,7 @@ class Model {
 			"pos1"	: pos1,
 			"pos2"	: pos2
 		};
-		console.log(JSON.stringify(this.state, null, "\t"));
+		//console.log(JSON.stringify(this.state, null, "\t"));
 		return id;
 	}
 	updateZone(id, pos1, pos2) {

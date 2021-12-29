@@ -51,47 +51,39 @@ function keyDown(event) {
 	let context = draw.context;
 	let activeNode = context.activeNodes()[0];
 	let activeZone = context.activeZones()[0];
-
 	if(event.defaultPrevented) {
 		return; // Do nothing if the event was already processed
 	}
-	// move all setAttribute manipulation to draw.js
 	// consider using persistent 'layers' mapped to 1-4 keys - use shift+1 for layer 1 - default plain shift to 1
 	currentKey = event.key;
-	console.log('CURRENTKEY: ' + event.key);
-
+	console.log('[ KEYDOWN ]: ' + event.key);
 	let styles;
 	if(activeNode) {
 		styles = iconset.icons[activeNode.type].class;
 	}
 	if(currentKey == 'Meta') {
 		if(activeZone) {
-			let myGroup = document.getElementById(activeZone.id); // move into zone.setClass();
-			myGroup.setAttribute("class", "zoneDelete");
+			activeZone.setClass('zoneDelete');
 		}
 	}
 	if(currentKey == 'Alt') {
 		if(activeNode) {
-			let currentNode = document.getElementById(activeNode.id); // move into node.setClass();
-			currentNode.setAttributeNS(null, "class", styles.delete);
+			activeNode.setClass(styles.delete);
 		}
 	}
 	if(currentKey == 'Control') {
 		if(activeNode) {
-			let currentNode = document.getElementById(activeNode.id); // move into node.setClass();
-			currentNode.setAttributeNS(null, "class", styles.clone);
+			activeNode.setClass(styles.clone);
 		}
 	}
 	if(currentKey == 'Shift') {
 		draw.showGrid();
 		if(activeZone) {
 			if(event.altKey) {
-				let myGroup = document.getElementById(activeZone.id); // move into zone.setClass();
-				myGroup.setAttribute("class", "zoneDelete");
+				activeZone.setClass('zoneDelete');
 			}
 		}
 	}
-	console.log('[ KEYDOWN ]: ' + event.key);
 }
 
 // test key trigger
@@ -99,7 +91,6 @@ function keyUp(event) {
 	let context = draw.context;
 	let activeNode = context.activeNodes()[0];
 	let activeZone = context.activeZones()[0];
-
 	console.log('[ KEYUP ]: ' + event.key);
 	let styles;
 	if(activeNode) {
@@ -107,28 +98,24 @@ function keyUp(event) {
 	}
 	if(event.key == 'Meta') {
 		if(activeZone) {
-			let myGroup = document.getElementById(activeZone.id); // move into zone.setClass();
-			myGroup.setAttribute("class", "zone");
+			activeZone.setClass('zone');
 		}
 	}
 	if(event.key == 'Alt') {
 		if(activeNode) {
-			let currentNode = document.getElementById(activeNode.id); // move into node.setClass();
-			currentNode.setAttributeNS(null, "class", styles.mouseover);
+			activeNode.setClass(styles.mouseover);
 		}
 	}
 	if(event.key == 'Control') {
 		if(activeNode) {
-			let currentNode = document.getElementById(activeNode.id); // move into node.setClass();
-			currentNode.setAttributeNS(null, "class", styles.mouseover);
+			activeNode.setClass(styles.mouseover);
 		}
 	}
 	if(event.key == 'Shift') {
 		draw.hideGrid();
 		draw.deleteZone('liveZone');
 		if(activeZone) {
-			let myGroup = document.getElementById(activeZone.id); // move into zone.setClass();
-			myGroup.setAttribute("class", "zone");
+			activeZone.setClass('zone');
 		}
 	}
 	currentKey = null;
@@ -378,37 +365,30 @@ function mouseover(event) {
 
 	// update active nodes
 	activeNodes.forEach((entity) => {
-		let target = document.getElementById(entity.id);
 		let styles = iconset.icons[entity.type].class;
 		if(!(event.altKey && event.ctrlKey)) {
 			if(event.altKey) {
-				target.setAttribute("class", styles.delete);
-				//node.setClass(styles.delete);
+				entity.setClass(styles.delete);
 			} else {
 				if(event.ctrlKey) {
-					target.setAttribute("class", styles.clone);
-					//node.setClass(styles.clone);
+					entity.setClass(styles.clone);
 				} else {
-					target.setAttribute("class", styles.mouseover);
-					//node.setClass(styles.hover);
+					entity.setClass(styles.mouseover);
 				}
 			}
 		} else {
-			target.setAttribute("class", styles.mouseover);
-			//node.setClass(styles.hover);
+			entity.setClass(styles.mouseover);
 		}
 	});
 
 	// update active zones
 	activeZones.forEach((entity) => {
-		let target = document.getElementById(entity.id);
 		if(event.shiftKey) {
 			if(event.altKey) {
-				target.setAttribute("class", "zoneDelete");
-				//zone.setClass("zoneDelete");
+				entity.setClass("zoneDelete");
 			}
 		} else {
-			target.setAttribute("class", "zoneActive");
+			entity.setClass("zoneActive");
 		}
 	});
 }
@@ -419,18 +399,17 @@ function mouseout(event) {
 	let inactiveNodes = context.inactiveNodes();
 	let inactiveZones = context.inactiveZones();
 
-	// update recent inactive node
-	inactiveNodes.forEach((entity) => {
-		let target = document.getElementById(entity.id);
-		let styles = iconset.icons[entity.type].class;
-		target.setAttribute("class", styles.mouseout);
-		//node.setClass("node");
-	});
+	// hack for canvas short-circuit
+	if(event.target.id != 'canvas') {
+		// update recent inactive node
+		inactiveNodes.forEach((entity) => {
+			let styles = iconset.icons[entity.type].class;
+			entity.setClass(styles.mouseout);
+		});
 
-	// update recent inactive zones
-	inactiveZones.forEach((entity) => {
-		let target = document.getElementById(entity.id);
-		target.setAttribute("class", "zone");
-		//zone.setClass("zone");
-	});
+		// update recent inactive zones
+		inactiveZones.forEach((entity) => {
+			entity.setClass("zone");
+		});
+	}
 }
