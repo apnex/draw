@@ -1,8 +1,10 @@
 /*
 Draw provides a visual canvas and API for rendering SVG elements to the DOM
-Contains logic to combine structure (Model) and classes (Style) for rendering
-Does not handle DOM listener events
+Contains logic to combine structure (Model), layout (Layout) and classes (Style) for rendering
+Does not handle interactivity or DOM listener events
+Import/Export is handled as an extension via loader.js
 */
+// Consider splitting DOM rendering functions into a renderer.js?
 
 // main class
 import contextFactory from './context.js';
@@ -125,7 +127,7 @@ class Draw {
 		// same with width and height - change to cell coords
 		let groups = this.state.groups;
 		let layout = this.state.layout;
-		console.log('[ DRAW ]: createBox: ID[' + id + '] SRC ' + pos.x + ':' + pos.y);
+		console.log('[ DRAW ]: createZone: ID[' + id + '] SRC ' + pos.x + ':' + pos.y);
 		groups.zones.appendChild(this.createShape('rect', {
 			"id"	: id,
 			"class"	: 'zone',
@@ -152,6 +154,34 @@ class Draw {
 			"width"		: (end.x - start.x) + (layout.gap.x),
 			"height"	: (end.y - start.y) + (layout.gap.y)
 		}));
+	}
+	drawZone(spec) { // draw zone - merge with createZone()?
+		let groups = this.state.groups;
+		let layout = this.state.layout;
+		console.log('[ DRAW ]: drawZone: ID[' + spec.id + '] POS1[ ' + spec.pos1.x + ':' + spec.pos1.y + ' ] POS2[ ' + spec.pos2.x + ':' + spec.pos2.y + ' ]');
+		groups.zones.appendChild(this.createShape('rect', {
+			"id"		: spec.id,
+			"class"		: spec.class,
+			"x"		: spec.pos1.x, // - (layout.gap.x / 2),
+			"y"		: spec.pos1.y, // - (layout.gap.y / 2),
+			"width"		: (spec.pos2.x - spec.pos1.x), // + (layout.offset.x),
+			"height"	: (spec.pos2.y - spec.pos1.y) // + (layout.offset.y)
+		}));
+	}
+	addZone(spec) { // create and draw zone
+		let model = this.state.model;
+
+		// instance within model
+		let id = model.createZone(spec.pos1, spec.pos2, spec.type, spec.tags);
+
+		// render to canvas
+		this.drawZone({
+			id,
+			class	: spec.class,
+			pos1	: spec.pos1,
+			pos2	: spec.pos2
+		});
+		return id;
 	}
 	resolveBox(pos1, pos2) { // move to ManagedObject(Zone) class
 		// work out shift

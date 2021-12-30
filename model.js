@@ -1,7 +1,8 @@
 /* MOCK Model
 -- Model deals in structure of nodes and links
 -- Model does not handle layout or visual coordinate space
--- Should it be aware of Layout ?
+-- Should it be aware of Layout ? No
+-- Generates and owns IDs for all managed object kinds [node, link, zone]
 zones = {
 	id	= bcdeab,
 	type	= "zone"
@@ -33,18 +34,18 @@ class Model {
 			links: {}
 		};
 	}
-	createZone(pos1, pos2, tag) {
+	createZone(pos1, pos2, type = 'zone', tags) {
 		let id = Math.random() * 10;
-		console.log('[ MODEL ]: createZone - ' + id);
+		console.log('[ MODEL ]: createZone - POS1[ ' + pos1.x + ':' + pos1.y + ' ] + POS2[ ' + pos2.x + ':' + pos2.y + ' ]');
 		this.state.zones[id] = {
-			"id"	: id,
-			"type"	: 'zone',
-			"tag"	: tag,
+			id,
+			type,
 			"pos1"	: pos1,
 			"pos2"	: pos2,
-			"tags"	: {}
+			"tags"	: Object.assign({
+				enable: true
+			}, tags)
 		};
-		//console.log(JSON.stringify(this.state, null, "\t"));
 		return id;
 	}
 	updateZone(id, pos1, pos2) {
@@ -62,15 +63,17 @@ class Model {
 			return id;
 		}
 	}
-	createNode(kind, pos, tag) {
+	createNode(type, pos, tags) {
 		let id = Math.random() * 10;
+		console.log('[ MODEL ]: createNode - POS[ ' + pos.x + ':' + pos.y + ' ] + TYPE[ ' + type + ' ]');
 		this.state.nodes[id] = {
 			"id"	: id,
-			"type"	: kind,
-			"tag"	: tag,
+			"type"	: type,
 			"x"	: pos.x,
 			"y"	: pos.y,
-			"tags"	: {},
+			"tags"	: Object.assign({
+				enable: true
+			}, tags),
 			"links"	: {}
 		};
 		return id;
@@ -90,7 +93,7 @@ class Model {
 		delete(nodes[id]);
 		return id;
 	}
-	createLink(src, dst) {
+	createLink(src, dst, tags) {
 		if(src != dst) {
 			console.log('[ MODEL ]: createLink - ' + src + ' <-> ' + dst);
 			let links = this.state.links;
@@ -101,7 +104,9 @@ class Model {
 				"type"	: 'active',
 				"src"	: src,
 				"dst"	: dst,
-				"tags"	: {}
+				"tags"	: Object.assign({
+					enable: true
+				}, tags)
 			};
 			if(!nodes[src].links[id]) {
 				nodes[src].links[id] = {

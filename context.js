@@ -10,6 +10,7 @@ class Context {
 			active: true,
 			recent: true
 			update: true
+			enable: true
 		}
 		*/
 		this.state = {
@@ -48,7 +49,9 @@ class Context {
 				managedEntity.setTag = function(key, value) {
 					//console.log('setTag[ ' + key + ':' + value + ' ] on Entity: ' + this.id);
 					//this.tags.update = false; // should this sit inside model?
-					lEntities[this.id].update = false;
+					//model should provide a tags() function to manipulate tags
+					lEntities[this.id][key] = value;
+					//lEntities[this.id].update = false;
 				}
 				result.push(mEntities[entity.id]);
 			} else {
@@ -101,15 +104,19 @@ class Context {
 						id,
 						active: false,
 						recent: false,
-						update: false
+						update: false,
+						enable: this.model.nodes[id].tags.enable
 					};
 				} else {
 					this.state.nodes[id].recent = false;
 				}
 			});
-			this.state.nodes[target.id].active = true;
-			this.state.nodes[target.id].recent = true;
-			this.state.nodes[target.id].update = true;
+			let currentTarget = this.state.nodes[target.id];
+			if(currentTarget.enable) {
+				currentTarget.active = true;
+				currentTarget.recent = true;
+				currentTarget.update = true;
+			}
 		}
 
 		// zones - update local state
@@ -120,17 +127,20 @@ class Context {
 						id,
 						active: false,
 						recent: false,
-						update: false
+						update: false,
+						enable: this.model.zones[id].tags.enable
 					};
 				} else {
 					this.state.zones[id].recent = false;
 				}
 			});
-			this.state.zones[target.id].active = true;
-			this.state.zones[target.id].recent = true;
-			this.state.zones[target.id].update = true;
+			let myTarget = this.state.zones[target.id];
+			if(myTarget.enable) {
+				myTarget.active = true;
+				myTarget.recent = true;
+				myTarget.update = true;
+			}
 		}
-
 		//console.log('CONTEXT test - mouseover triggered - NAME: ' + target.nodeName + ' ID: ' + target.id);
 		return this;
 	}
@@ -140,15 +150,21 @@ class Context {
 
 		// check if target exists in local state and update active + recent
 		if(this.state.nodes[target.id]) {
-			this.state.nodes[target.id].active = false;
-			this.state.nodes[target.id].recent = true;
-			this.state.nodes[target.id].update = true;
+			let myTarget = this.state.nodes[target.id];
+			if(myTarget.enable) {
+				myTarget.active = false;
+				myTarget.recent = true;
+				myTarget.update = true;
+			}
 		}
 
 		if(this.state.zones[target.id]) {
-			this.state.zones[target.id].active = false;
-			this.state.zones[target.id].recent = true;
-			this.state.zones[target.id].update = true;
+			let myTarget = this.state.zones[target.id];
+			if(myTarget.enable) {
+				myTarget.active = false;
+				myTarget.recent = true;
+				myTarget.update = true;
+			}
 		}
 		//console.log('CONTEXT test - mouseout triggered - NAME: ' + target.nodeName + ' ID: ' + target.id);
 		return this;

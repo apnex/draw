@@ -163,15 +163,21 @@ async function init() {
 		'vxlan',
 		'router'
 	].forEach((icon, x) => {
-		draw.createNode(icon, grid.getCoord({x, y: 0}), 'dock'); // need to adjust to be cell coord, not raw x,y
+		draw.createNode(icon, grid.getCoord({x, y: 0}), {
+			button: true
+		}); // need to adjust to be cell coord, not raw x,y
 		//draw.createNode(icon, {x, y: 0}, 'dock');
 	});
-	draw.createZone2({
-		id	: 'dockPanel',
+
+	// new addZone function - update to remove getGroupCoord, and have it resolve from grid cell coord
+	draw.addZone({
+		type	: 'panel',
 		class	: 'panel',
-		start	: {x: 0, y: 0},
-		end	: {x: 5, y: 0},
-		tags	: []
+		pos1	: grid.getGroupCoord({x: 0, y: 0}),
+		pos2	: grid.getGroupCoord({x: 6, y: 1}),
+		tags	: {
+			enable: false
+		}
 	});
 
 	// save panel
@@ -179,25 +185,27 @@ async function init() {
 		'export',
 		'waypoint'
 	].forEach((icon, x) => {
-		draw.createNode(icon, grid.getCoord({x, y: 1}), 'dock'); // need to adjust to be cell coord, not raw x,y
-		//draw.createNode(icon, {x, y: 1}, 'dock');
+		draw.createNode(icon, grid.getCoord({x, y: 1}), {
+			button: true
+		});
 	});
-	draw.createZone2({
-		id	: 'controlPanel',
+
+	// new addZone function - update to remove getCoord
+	draw.addZone({
+		type	: 'panel',
 		class	: 'panel',
-		start	: {x: 0, y: 1},
-		end	: {x: 1, y: 1},
-		tags	: []
+		pos1	: grid.getGroupCoord({x: 0, y: 1}),
+		pos2	: grid.getGroupCoord({x: 2, y: 2}),
+		tags	: {
+			enable: false
+		}
 	});
 
 	// test diagram load
-	/*
-	console.log('Loading Model [ /examples/test.json');
-	let newModel = await ky.get('/examples/test.json').json();
-	console.log('Loading Model [ /examples/test.json - DONE!');
-	//console.log(JSON.stringify(newModel, null, "\t"));
+	console.log('Loading Model [ /examples/test1.json');
+	let newModel = await ky.get('/examples/test1.json').json();
+	console.log('Loading Model [ /examples/test1.json - DONE!');
 	draw.importDiagram(newModel);
-	*/
 	//model.import(newModel); ??
 }
 
@@ -242,11 +250,11 @@ function mousedown(event) {
 			};
 			let nearestPos = grid.getNearestPoint(currentPos);
 			// check tags
-			if(nodes[selectedNode].tag == "dock") {
+			if(nodes[selectedNode].tags.button) {
 				if(currentButton == 2) { // dock - create new node
+					console.log('[ DOCK ]: button pressed');
 					draw.showPoint(nearestPos);
 					selectedNode = draw.createNode(nodes[selectedNode].type, currentPos, 'notdock');
-					console.log('[ DOCK ]: doing dock things onmousedown');
 				}
 				if(currentButton == 0) { // dock - ?? save json
 					console.log('[ DOCK ]: saving json string');
@@ -254,7 +262,6 @@ function mousedown(event) {
 				}
 			} else {
 				if(currentButton == 0) { // start line drag
-					console.log('Start event: ' + event + ' button: ' + currentButton + ' nodepos: ' + currentPos.x + ':' + currentPos.y);
 					currentLine = draw.createLink(currentPos);
 				}
 				if(currentButton == 2) { // node on canvas
@@ -265,8 +272,8 @@ function mousedown(event) {
 							selectedNode = null;
 						} else {
 							if(event.ctrlKey) {
-								selectedNode = draw.createNode(nodes[selectedNode].type, currentPos, 'clone');
 								console.log('[ CLONE ]: cloning current NODE with CTRL+Right-Click');
+								selectedNode = draw.createNode(nodes[selectedNode].type, currentPos, 'clone');
 							}
 						}
 					}
@@ -290,9 +297,13 @@ function mousemove(event) {
 		y: event.clientY
 	};
 	if(selectedNode) {
-		if(nodes[selectedNode].tag == "dock") { // check if dock
+		// need to implement a filter here to check NODE ACTION before update!!! to save cycles
+
+		//if(nodes[selectedNode].tag == "dock") { // check if dock
+		//	console.log('DOCK TEST');
 			// do dock things
-		} else { // not the dock
+		//} else { // not the dock
+			console.log('UPDATE: DOCK TEST');
 			if(currentButton == 0) { // left button
 				// draw.updateLine
 				if(currentLine) { // mode to updateLink
@@ -305,7 +316,7 @@ function mousemove(event) {
 				let nearestPos = grid.getNearestPoint(currentPos);
 				draw.updatePoint(nearestPos);
 			}
-		}
+		//}
 	} else {
 		if(event.shiftKey) {
 			let currentZone = document.getElementById('liveZone');
