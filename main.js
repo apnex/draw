@@ -234,11 +234,21 @@ function mousedown(event) {
 		} else {
 			if(currentButton == 0) { // left-click
 				console.log('[ LAYER-01 ] - Create Group');
+				/*
+				draw.createLiveZone(zonePos1);
+				*/
+
+		                // create placeholder 'liveZone'
 				zonePos1 = grid.getNearestGroupPoint({
 					x: event.clientX,
 					y: event.clientY
 				});
-				draw.createZone(zonePos1, 'liveZone');
+				draw.drawZone({
+					id	:'liveZone',
+					class	: 'zone',
+					pos1	: zonePos1,
+					pos2	: zonePos1
+				});
 			}
 		}
 	} else {

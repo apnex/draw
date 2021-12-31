@@ -1,6 +1,7 @@
 /*
 Draw provides a visual canvas and API for rendering SVG elements to the DOM
 Contains logic to combine structure (Model), layout (Layout) and classes (Style) for rendering
+Primary responsibility to interact with DOM and resolve coordinate space to pixel x,y for shape rendering
 Does not handle interactivity or DOM listener events
 Import/Export is handled as an extension via loader.js
 */
@@ -121,51 +122,36 @@ class Draw {
 		let groups = this.state.groups;
 		groups.links.removeChild(document.getElementById(id));
 	}
-	createZone(pos, id, width = 0, height = 0) {
-		// zone always aligned to grid cells
-		// therefore change interface to accept cell coords - not pixel coords
-		// same with width and height - change to cell coords
+	createLiveZone(pos1) {
 		let groups = this.state.groups;
 		let layout = this.state.layout;
-		console.log('[ DRAW ]: createZone: ID[' + id + '] SRC ' + pos.x + ':' + pos.y);
+		console.log('[ DRAW ]: createLiveZone: ID[ liveZone ] SRC ' + pos1.x + ':' + pos1.y);
 		groups.zones.appendChild(this.createShape('rect', {
-			"id"	: id,
+			"id"	: 'liveZone',
 			"class"	: 'zone',
-			"x"	: pos.x,
-			"y"	: pos.y,
-			width, height
+			"x"	: pos1.x,
+			"y"	: pos1.y,
+			"width"	: 0,
+			"height": 0
 		}));
-		return id;
-	}
-	createZone2(spec) {
-		// zone always aligned to grid cells
-		// therefore change interface to accept cell coords - not pixel coords
-		// same with width and height - change to cell coords
-		let groups = this.state.groups;
-		let layout = this.state.layout;
-		let start = layout.getCoord(spec.start);
-		let end = layout.getCoord(spec.end);
-		//console.log('ZoneSpec: ' + JSON.stringify(spec,null, "\t"));
-		groups.zones.appendChild(this.createShape('rect', {
-			"id"		: spec.id,
-			"class"		: spec.class,
-			"x"		: start.x - (layout.gap.x / 2),
-			"y"		: start.y - (layout.gap.y / 2),
-			"width"		: (end.x - start.x) + (layout.gap.x),
-			"height"	: (end.y - start.y) + (layout.gap.y)
-		}));
+		return 'liveZone';
 	}
 	drawZone(spec) { // draw zone - merge with createZone()?
 		let groups = this.state.groups;
 		let layout = this.state.layout;
 		console.log('[ DRAW ]: drawZone: ID[' + spec.id + '] POS1[ ' + spec.pos1.x + ':' + spec.pos1.y + ' ] POS2[ ' + spec.pos2.x + ':' + spec.pos2.y + ' ]');
+
+		// normalise box points
+		let box = this.resolveBox(spec.pos1, spec.pos2);
+		// update resolveBox to return 3 points and 2 values - topLeft, center, bottomRight, height, width
+
 		groups.zones.appendChild(this.createShape('rect', {
 			"id"		: spec.id,
 			"class"		: spec.class,
-			"x"		: spec.pos1.x, // - (layout.gap.x / 2),
-			"y"		: spec.pos1.y, // - (layout.gap.y / 2),
-			"width"		: (spec.pos2.x - spec.pos1.x), // + (layout.offset.x),
-			"height"	: (spec.pos2.y - spec.pos1.y) // + (layout.offset.y)
+			"x"		: box.x,
+			"y"		: box.y,
+			"width"		: box.width,
+			"height"	: box.height
 		}));
 	}
 	addZone(spec) { // create and draw zone
@@ -187,14 +173,21 @@ class Draw {
 		// work out shift
 		let height = Math.abs(pos2.y - pos1.y);
 		let width = Math.abs(pos2.x - pos1.x);
+
+		let xshift = (pos1.x > pos2.x) ? width : 0;
+		/*
 		let xshift = 0;
-		let yshift = 0;
 		if(pos1.x > pos2.x) {
 			xshift = width;
 		}
+		*/
+		let yshift = (pos1.y > pos2.y) ? height : 0;
+		/*
+		let yshift = 0;
 		if(pos1.y > pos2.y) {
 			yshift = height;
 		}
+		*/
 		// return values
 		return {
 			"x"	: pos1.x - xshift,
@@ -208,12 +201,21 @@ class Draw {
 		return zone;
 	}
 	commitZone(id, pos1, pos2) {
+		// rework - move to model.validZone() ?
 		this.deleteZone(id); // remove temp liveZone
 		let model = this.state.model;
 		let zoneSize = this.resolveBox(pos1, pos2); // mode to ManagedObject(zone)
 		if(!(zoneSize.width == 0 || zoneSize.height == 0)) { // check if valid, then add to model+page
 			console.log('[ DRAW ]: commitZone - [' + pos1.x + ':' + pos1.y + ']-[' + pos2.x + ':' + pos2.y + ']');
-			this.createZone(zoneSize, model.createZone(pos1, pos2, 'modelZoneTag'), zoneSize.width, zoneSize.height);
+			this.addZone({
+				type	: 'zone',
+				class	: 'zone',
+				pos1	: pos1,
+				pos2	: pos2,
+				tags	: {
+					enable: true
+				}
+			});
 		}
 	}
 	deleteZone(id) {
