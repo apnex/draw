@@ -2,7 +2,7 @@
 Draw provides a visual canvas and API for rendering SVG elements to the DOM
 Contains logic to combine structure (Model), layout (Layout) and classes (Style) for rendering
 Primary responsibility to interact with DOM and resolve coordinate space to pixel x,y for shape rendering
-Does not handle interactivity or DOM listener events
+Does not handle interactivity or DOM listener events - Context.js does this
 Import/Export is handled as an extension via loader.js
 */
 // Consider splitting DOM rendering functions into a renderer.js?
@@ -122,20 +122,28 @@ class Draw {
 		let groups = this.state.groups;
 		groups.links.removeChild(document.getElementById(id));
 	}
-	createLiveZone(pos1) {
+	/*
+	drawNewZone(spec) {
 		let groups = this.state.groups;
 		let layout = this.state.layout;
-		console.log('[ DRAW ]: createLiveZone: ID[ liveZone ] SRC ' + pos1.x + ':' + pos1.y);
-		groups.zones.appendChild(this.createShape('rect', {
-			"id"	: 'liveZone',
-			"class"	: 'zone',
-			"x"	: pos1.x,
-			"y"	: pos1.y,
-			"width"	: 0,
-			"height": 0
-		}));
-		return 'liveZone';
+		console.log('[ DRAW ]: drawZone: ID[' + spec.id + '] POS1[ ' + spec.pos1.x + ':' + spec.pos1.y + ' ] POS2[ ' + spec.pos2.x + ':' + spec.pos2.y + ' ]');
+
+		let id = rectangle.draw({
+			class,
+			pos1,
+			pos2
+		});
+
+		groups.zones.appendChild(rectangle.create({
+			"id"		: spec.id,
+			"class"		: spec.class,
+			"x"		: box.x,
+			"y"		: box.y,
+			"width"		: box.width,
+			"height"	: box.height
+		});
 	}
+	*/
 	drawZone(spec) { // draw zone - merge with createZone()?
 		let groups = this.state.groups;
 		let layout = this.state.layout;

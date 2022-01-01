@@ -5,11 +5,6 @@ import iconset from './iconset.js';
 import drawFactory from './draw.js';
 var root = document.getElementById('container');
 initHandlers(root)
-var nodeGroup = document.getElementById('nodes');
-var dockGroup = document.getElementById('zones');
-var linkGroup = document.getElementById('links');
-var gridGroup = document.getElementById('grid');
-var defs = document.getElementById('defs');
 var currentLine = null;
 var zonePos1 = null;
 var currentButton = null;
@@ -18,9 +13,13 @@ var currentPoint = null;
 var selectedNode = null;
 var selectedPoint = null;
 
+/*
+MAIN implements user interactivity and menu inputs by handling initial mouse and key events from DOM
+From here, logic is orchestrated and handed off to Draw, Context and other modules for desired processing of events
+*/
+
 // init canvas
 var nodes = model.nodes; // rework main to remove this need
-var links = model.links; // rework main to remove this need
 var draw = drawFactory(model, grid, iconset);
 init();
 
@@ -116,7 +115,7 @@ function keyUp(event) {
 		draw.hideGrid();
 		draw.deleteZone('liveZone');
 		if(activeZone) {
-			activeZone.setClass('zone');
+			activeZone.setClass('zoneActive');
 		}
 	}
 	currentKey = null;
@@ -190,7 +189,7 @@ async function init() {
 		});
 	});
 
-	// new addZone function - update to remove getCoord
+	// new addZone function - update to remove getGroupCoord
 	draw.addZone({
 		type	: 'panel',
 		class	: 'panel',
@@ -234,11 +233,8 @@ function mousedown(event) {
 		} else {
 			if(currentButton == 0) { // left-click
 				console.log('[ LAYER-01 ] - Create Group');
-				/*
-				draw.createLiveZone(zonePos1);
-				*/
-
 		                // create placeholder 'liveZone'
+				// need to remove need for zonePos1 global variable
 				zonePos1 = grid.getNearestGroupPoint({
 					x: event.clientX,
 					y: event.clientY
@@ -310,7 +306,6 @@ function mousemove(event) {
 		// need to implement a filter here to check NODE ACTION before update!!! to save cycles
 
 		//if(nodes[selectedNode].tag == "dock") { // check if dock
-		//	console.log('DOCK TEST');
 			// do dock things
 		//} else { // not the dock
 			console.log('UPDATE: DOCK TEST');
@@ -401,6 +396,7 @@ function mouseover(event) {
 	// update active zones
 	activeZones.forEach((entity) => {
 		if(event.shiftKey) {
+			// does not trigger - if zone was deleted on top of another zone (no shift or alt is reflected here)
 			if(event.altKey) {
 				entity.setClass('zoneDelete');
 			}
