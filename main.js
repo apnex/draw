@@ -169,6 +169,8 @@ async function init() {
 	});
 
 	// new addZone function - update to remove getGroupCoord, and have it resolve from grid cell coord
+	// split zoneGrid from nodeGrid - make two instances of the same object
+	// use shift key to move between grids
 	draw.addZone({
 		type	: 'panel',
 		class	: 'panel',
@@ -377,19 +379,21 @@ function mouseover(event) {
 
 	// update active nodes
 	activeNodes.forEach((entity) => {
-		let styles = iconset.icons[entity.type].class;
-		if(!(event.altKey && event.ctrlKey)) {
-			if(event.altKey) {
-				entity.setClass(styles.delete);
-			} else {
-				if(event.ctrlKey) {
-					entity.setClass(styles.clone);
+		if(!event.shiftKey) {
+			let styles = iconset.icons[entity.type].class;
+			if(!(event.altKey && event.ctrlKey)) {
+				if(event.altKey) {
+					entity.setClass(styles.delete);
 				} else {
-					entity.setClass(styles.mouseover);
+					if(event.ctrlKey) {
+						entity.setClass(styles.clone);
+					} else {
+						entity.setClass(styles.mouseover);
+					}
 				}
+			} else {
+				entity.setClass(styles.mouseover);
 			}
-		} else {
-			entity.setClass(styles.mouseover);
 		}
 	});
 
