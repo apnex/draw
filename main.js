@@ -2,7 +2,7 @@ import ky from './lib/ky.min.js';
 import grid from './grid.js';
 import model from './model.js';
 import iconset from './iconset.js';
-import drawFactory from './draw.js';
+import engFactory from './core/engineer.js';
 var root = document.getElementById('container');
 initHandlers(root)
 var currentLine = null;
@@ -20,7 +20,7 @@ From here, logic is orchestrated and handed off to Draw, Context and other modul
 
 // init canvas
 var nodes = model.nodes; // rework main to remove this need
-var draw = drawFactory(model, grid, iconset);
+var draw = engFactory(model, grid, iconset);
 init();
 
 // attach handlers

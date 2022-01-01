@@ -1,5 +1,3 @@
-import ky from './lib/ky.min.js';
-
 // main class
 class Loader {
 	constructor() {

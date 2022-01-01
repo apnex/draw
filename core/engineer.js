@@ -1,18 +1,19 @@
 /*
-Draw provides a visual canvas and API for rendering SVG elements to the DOM
+Engineer provides a visual platform and API for rendering nodes, links and zones
 Contains logic to combine structure (Model), layout (Layout) and classes (Style) for rendering
-Primary responsibility to interact with DOM and resolve coordinate space to pixel x,y for shape rendering
-Does not handle interactivity or DOM listener events - Context.js does this
+Does not directly handle DOM objects, interactivity or listener events - painter.js + context.js do this
 Import/Export is handled as an extension via loader.js
 */
-// Consider splitting DOM rendering functions into a renderer.js?
 
 // main class
 import contextFactory from './context.js';
 import loader from './loader.js';
-class Draw {
+import painterFactory from './painter.js';
+const painter = painterFactory('canvas');
+
+class Engineer {
 	constructor(model, layout, iconset) {
-		console.log('INIT new { DRAW }');
+		console.log('INIT new { ENGINEER }');
 		this.state = {
 			model: model,
 			layout: layout,
@@ -48,6 +49,7 @@ class Draw {
 		for(let y = 0; y < gridSize.y; y++) {
 			for(let x = 0; x < gridSize.x; x++) {
 				let pos = {x, y};
+				// painter.createCircle(id, spec); // move to painter
 				groups.grid.appendChild(this.createShape('circle', {
 					"r"	: 6,
 					"cx"	: layout.getGroupCoord(pos).x,
@@ -73,7 +75,6 @@ class Draw {
 	}
 	addLink(src, dst) {
 		let model = this.state.model;
-		let groups = this.state.groups;
 		let id = model.createLink(src, dst);
 		if(id) {
 			let srcPos = {
@@ -86,30 +87,25 @@ class Draw {
 				y: document.getElementById(dst).getAttribute("y")
 			};
 			console.log('[ DRAW ]: addLink: DST ' + dstPos.x + ':' + dstPos.y);
-			groups.links.appendChild(this.createShape('line', {
-				"id"		: id,
+			return painter.createLine(id, {
+				"class"		: 'link',
 				"x1"		: srcPos.x,
 				"y1"		: srcPos.y,
 				"x2"		: dstPos.x,
-				"y2"		: dstPos.y,
-				"class"		: 'link'
-			}));
+				"y2"		: dstPos.y
+			}, 'links');
 		}
-		return id;
 	}
 	createLink(pos) {
-		let groups = this.state.groups;
 		let id = Math.random() * 10;
-		console.log('[ DRAW ]: createLink: SRC ' + pos.x + ':' + pos.y);
-		groups.links.appendChild(this.createShape('line', {
-			"id"		: id,
+		console.log('[ DRAW ]: createLink: SRC++ ' + pos.x + ':' + pos.y);
+		return painter.createLine(id, {
+			"class"		: 'link',
 			"x1"		: pos.x,
 			"y1"		: pos.y,
 			"x2"		: pos.x,
-			"y2"		: pos.y,
-			"class"		: "link"
-		}));
-		return id;
+			"y2"		: pos.y
+		}, 'links');
 	}
 	updateLink(id, pos) {
 		let line = document.getElementById(id);
@@ -122,45 +118,18 @@ class Draw {
 		let groups = this.state.groups;
 		groups.links.removeChild(document.getElementById(id));
 	}
-	/*
-	drawNewZone(spec) {
-		let groups = this.state.groups;
-		let layout = this.state.layout;
+	drawZone(spec) {
 		console.log('[ DRAW ]: drawZone: ID[' + spec.id + '] POS1[ ' + spec.pos1.x + ':' + spec.pos1.y + ' ] POS2[ ' + spec.pos2.x + ':' + spec.pos2.y + ' ]');
-
-		let id = rectangle.draw({
-			class,
-			pos1,
-			pos2
-		});
-
-		groups.zones.appendChild(rectangle.create({
-			"id"		: spec.id,
-			"class"		: spec.class,
-			"x"		: box.x,
-			"y"		: box.y,
-			"width"		: box.width,
-			"height"	: box.height
-		});
-	}
-	*/
-	drawZone(spec) { // draw zone - merge with createZone()?
-		let groups = this.state.groups;
-		let layout = this.state.layout;
-		console.log('[ DRAW ]: drawZone: ID[' + spec.id + '] POS1[ ' + spec.pos1.x + ':' + spec.pos1.y + ' ] POS2[ ' + spec.pos2.x + ':' + spec.pos2.y + ' ]');
-
-		// normalise box points
 		let box = this.resolveBox(spec.pos1, spec.pos2);
+		// normalise box points - move to painter?
 		// update resolveBox to return 3 points and 2 values - topLeft, center, bottomRight, height, width
-
-		groups.zones.appendChild(this.createShape('rect', {
-			"id"		: spec.id,
+		return painter.createRect(spec.id, {
 			"class"		: spec.class,
 			"x"		: box.x,
 			"y"		: box.y,
 			"width"		: box.width,
 			"height"	: box.height
-		}));
+		}, 'zones');
 	}
 	addZone(spec) { // create and draw zone
 		let model = this.state.model;
@@ -177,26 +146,12 @@ class Draw {
 		});
 		return id;
 	}
-	resolveBox(pos1, pos2) { // move to ManagedObject(Zone) class
-		// work out shift
+	resolveBox(pos1, pos2) { // move to painter?
+		// work out size + shift
 		let height = Math.abs(pos2.y - pos1.y);
 		let width = Math.abs(pos2.x - pos1.x);
-
 		let xshift = (pos1.x > pos2.x) ? width : 0;
-		/*
-		let xshift = 0;
-		if(pos1.x > pos2.x) {
-			xshift = width;
-		}
-		*/
 		let yshift = (pos1.y > pos2.y) ? height : 0;
-		/*
-		let yshift = 0;
-		if(pos1.y > pos2.y) {
-			yshift = height;
-		}
-		*/
-		// return values
 		return {
 			"x"	: pos1.x - xshift,
 			"y"	: pos1.y - yshift,
@@ -208,8 +163,7 @@ class Draw {
 		this.assignAttr(zone, this.resolveBox(pos1, pos2));
 		return zone;
 	}
-	commitZone(id, pos1, pos2) {
-		// rework - move to model.validZone() ?
+	commitZone(id, pos1, pos2) { // rework - move to model.validZone() ?
 		this.deleteZone(id); // remove temp liveZone
 		let model = this.state.model;
 		let zoneSize = this.resolveBox(pos1, pos2); // mode to ManagedObject(zone)
@@ -235,26 +189,17 @@ class Draw {
 			return model.deleteZone(id);
 		}
 	}
-	createNode(kind, pos, tag) {
+	createNode(type, pos, tag) {
 		// creates new node in model and renders to canvas
 		let model = this.state.model;
-		let groups = this.state.groups;
-		let layout = this.state.layout;
 		let iconset = this.state.iconset;
-
-		// instance within the diagram
-		let id = model.createNode(kind, pos, tag);
-
-		// retrieve individual icon and style properties
-		groups.nodes.appendChild(this.createUse(kind, {
-			"id"	: id,
-			//"x"	: layout.getCoord(pos).x,
-			//"y"	: layout.getCoord(pos).y,
-			"x"	: pos.x, // need to update to consistently refer to cell location, not raw screen x,y
-			"y"	: pos.y,
-			"class"	: iconset.icons[kind].class.mouseout
-		}));
-		return id;
+		let id = model.createNode(type, pos, tag);
+		return painter.createIcon(id, {
+			"type"	: type,
+			"class"	: iconset.icons[type].class.mouseout,
+			"x"	: pos.x,
+			"y"	: pos.y
+		}, 'nodes');
 	}
 	updateNode(id, pos) {
 		let nodes = this.state.model.nodes;
@@ -438,7 +383,7 @@ class Draw {
 
 // create instance
 const createInstance = function(model, layout, iconset) {
-	const instance = new Draw(model, layout, iconset);
+	const instance = new Engineer(model, layout, iconset);
 	instance.model = instance.state.model;
 	instance.layout = instance.state.layout;
 	instance.groups = instance.state.groups;
