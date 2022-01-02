@@ -203,11 +203,10 @@ async function init() {
 	});
 
 	// test diagram load
-	console.log('Loading Model [ /examples/test1.json');
-	let newModel = await ky.get('/examples/test1.json').json();
-	console.log('Loading Model [ /examples/test1.json - DONE!');
+	console.log('Loading Model [ /examples/test2.json');
+	let newModel = await ky.get('/examples/test2.json').json();
+	console.log('Loading Model [ /examples/test2.json - DONE!');
 	draw.importDiagram(newModel);
-	//model.import(newModel); ??
 }
 
 // mousedown

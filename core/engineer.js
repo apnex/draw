@@ -34,37 +34,36 @@ class Engineer {
 		// rework - to be a dedicated model, with its own snap points (getNearestPoint)
 		let root = document.getElementById('container');
 		let rect = root.getBoundingClientRect();
-		console.log('[ BUILD ]: grid { ' + rect.width + ':' + rect.height + ' }');
+		console.log('[ ENGINEER ]: build grid { ' + rect.width + ':' + rect.height + ' }');
 
 		let gridSize = {
 			x: Math.floor(rect.width / (layout.gap.x / 2)),
 			y: Math.floor(rect.height / (layout.gap.y / 2))
 		};
-		console.log('GRIDSIZE: ' + gridSize.x + ':' + gridSize.y);
+		console.log('[ ENGINEER ]: grid.size: ' + gridSize.x + ':' + gridSize.y);
 
 		// create and hide grid points
-		// move this to a layer object
+		// move to layer object
 		this.hideGrid();
 		let groups = this.state.groups;
 		for(let y = 0; y < gridSize.y; y++) {
 			for(let x = 0; x < gridSize.x; x++) {
-				let pos = {x, y};
-				// painter.createCircle(id, spec); // move to painter
-				groups.grid.appendChild(this.createShape('circle', {
+				painter.createCircle(null, {
+					"class"	: 'gridPoints',
 					"r"	: 6,
-					"cx"	: layout.getGroupCoord(pos).x,
-					"cy"	: layout.getGroupCoord(pos).y,
-					"class"	: 'gridPoints'
-				}));
+					"cx"	: layout.getGroupCoord({x, y}).x,
+					"cy"	: layout.getGroupCoord({x, y}).y
+				}, 'grid');
 			}
 		}
 
 		// create and hide node point
+		// move to layer object
 		this.hidePoint();
 		this.createPoint({x: 0, y: 0});
 
 		// create and hide group point
-		//this.hideGroupPoint();
+		// move to layer object
 		this.createGroupPoint({x: 0, y: 0});
 	}
 	importDiagram(spec) {
@@ -77,16 +76,28 @@ class Engineer {
 		let model = this.state.model;
 		let id = model.createLink(src, dst);
 		if(id) {
+			/*
 			let srcPos = {
 				x: document.getElementById(src).getAttribute("x"),
 				y: document.getElementById(src).getAttribute("y")
 			};
-			console.log('[ DRAW ]: addLink: SRC ' + srcPos.x + ':' + srcPos.y);
+			console.log('[ ENGINEER ]: addLink: SRC ' + srcPos.x + ':' + srcPos.y);
 			let dstPos = {
 				x: document.getElementById(dst).getAttribute("x"),
 				y: document.getElementById(dst).getAttribute("y")
 			};
-			console.log('[ DRAW ]: addLink: DST ' + dstPos.x + ':' + dstPos.y);
+			console.log('[ ENGINEER ]: addLink: DST ' + dstPos.x + ':' + dstPos.y);
+			*/
+			let srcPos = {
+				x: painter.getElement(src).getAttribute("x"),
+				y: painter.getElement(src).getAttribute("y")
+			};
+			console.log('[ ENGINEER ]: addLink: SRC ' + srcPos.x + ':' + srcPos.y);
+			let dstPos = {
+				x: painter.getElement(dst).getAttribute("x"),
+				y: painter.getElement(dst).getAttribute("y")
+			};
+			console.log('[ ENGINEER ]: addLink: DST ' + dstPos.x + ':' + dstPos.y);
 			return painter.createLine(id, {
 				"class"		: 'link',
 				"x1"		: srcPos.x,
@@ -98,7 +109,7 @@ class Engineer {
 	}
 	createLink(pos) {
 		let id = Math.random() * 10;
-		console.log('[ DRAW ]: createLink: SRC++ ' + pos.x + ':' + pos.y);
+		console.log('[ ENGINEER ]: createLink: SRC++ ' + pos.x + ':' + pos.y);
 		return painter.createLine(id, {
 			"class"		: 'link',
 			"x1"		: pos.x,
@@ -117,7 +128,7 @@ class Engineer {
 		return painter.deleteLine(id);
 	}
 	drawZone(spec) {
-		console.log('[ DRAW ]: drawZone: ID[' + spec.id + '] POS1[ ' + spec.pos1.x + ':' + spec.pos1.y + ' ] POS2[ ' + spec.pos2.x + ':' + spec.pos2.y + ' ]');
+		console.log('[ ENGINEER ]: drawZone: ID[' + spec.id + '] POS1[ ' + spec.pos1.x + ':' + spec.pos1.y + ' ] POS2[ ' + spec.pos2.x + ':' + spec.pos2.y + ' ]');
 		let box = this.resolveBox(spec.pos1, spec.pos2);
 		// normalise box points - move to painter?
 		return painter.createRect(spec.id, {
@@ -131,8 +142,6 @@ class Engineer {
 	addZone(spec) { // create and draw zone
 		let model = this.state.model;
 		let id = model.createZone(spec.pos1, spec.pos2, spec.type, spec.tags);
-
-		// render to canvas
 		this.drawZone({
 			id,
 			class	: spec.class,
@@ -185,7 +194,6 @@ class Engineer {
 		}
 	}
 	createNode(type, pos, tag) {
-		// creates new node in model and renders to canvas
 		let model = this.state.model;
 		let iconset = this.state.iconset;
 		let id = model.createNode(type, pos, tag);
@@ -206,7 +214,8 @@ class Engineer {
 				"y"	: pos.y
 			});
 			// render update links on icon
-			Object.values(nodes[id].links).forEach((link) => {
+			for(let linkId in nodes[id].links) {
+				let link = links[linkId];
 				if(link.src == id) {
 					painter.updateLine(link.id, {
 						"x1"	: pos.x,
@@ -218,7 +227,7 @@ class Engineer {
 						"y2"	: pos.y
 					});
 				}
-			});
+			};
 			return id;
 		}
 	}
@@ -231,11 +240,11 @@ class Engineer {
 	deleteNode(id) {
 		let model = this.state.model;
 		let nodes = model.nodes;
-		Object.keys(nodes[id].links).forEach((linkId) => {
-			painter.deleteLine(linkId);
-		});
-		if(model.deleteNode(id)) {
-			return painter.deleteIcon(id);
+		if(painter.deleteIcon(id)) {
+			Object.keys(nodes[id].links).forEach((linkId) => {
+				painter.deleteLine(linkId);
+			});
+			return model.deleteNode(id);
 		}
 	}
 	showGrid() {
@@ -261,7 +270,7 @@ class Engineer {
 		let root = document.getElementById('container');
 		let rect = root.getBoundingClientRect();
 		let layout = this.state.layout;
-		console.log('[ CREATE ]: point { ' + rect.width + ':' + rect.height + ' }');
+		console.log('[ ENGINEER ]: point.create { ' + rect.width + ':' + rect.height + ' }');
 		this.state.currentPoint = {
 			x: pos.x,
 			y: pos.y
@@ -290,75 +299,47 @@ class Engineer {
 	}
 	updatePoint(pos) {
 		let layout = this.state.layout;
-		let nearestPos = layout.getNearestPoint(pos);
-		let currentPos = this.state.currentPoint;
-		if(!layout.isSamePos(currentPos, nearestPos)) {
-			painter.updateRect('box', {
-				"x": pos.x - (box.getAttribute("width") / 2),
-				"y": pos.y - (box.getAttribute("height") / 2)
-			});
+		let nPos = layout.getNearestPoint(pos);
+		let cPos = this.state.currentPoint;
+		if(!layout.isSamePos(cPos, nPos)) {
 			painter.updateLine('vline', {
-				"x1"	: pos.x,
-				"x2"	: pos.x
+				"x1"	: nPos.x,
+				"x2"	: nPos.x
 			});
 			painter.updateLine('hline', {
-				"y1"	: pos.y,
-				"y2"	: pos.y
+				"y1"	: nPos.y,
+				"y2"	: nPos.y
 			});
-			this.state.currentPoint.x = nearestPos.x;
-			this.state.currentPoint.y = nearestPos.y;
+			painter.rect.center('box', nPos);
+			this.state.currentPoint.x = nPos.x;
+			this.state.currentPoint.y = nPos.y;
 		}
 	}
 	createGroupPoint(pos) {
 		let layout = this.state.layout;
 		let groups = this.state.groups;
-		console.log('[ CREATE ]: GroupPoint');
+		console.log('[ ENGINEER ]: createGroupPoint');
 		this.state.currentGroupPoint = {
 			x: pos.x,
 			y: pos.y
 		};
-		groups.grid.appendChild(this.createShape('circle', {
-			"id"	: 'groupPoint',
+		painter.createCircle('groupPoint', {
+			"class"	: 'box',
 			"r"	: 10,
 			"cx"	: layout.getGroupCoord(pos).x,
-			"cy"	: layout.getGroupCoord(pos).y,
-			"class"	: 'box'
-		}));
+			"cy"	: layout.getGroupCoord(pos).y
+		}, 'grid');
 	}
 	updateGroupPoint(pos) {
 		let layout = this.state.layout;
-		let nearestPos = layout.getNearestGroupPoint(pos);
-		//let currentPos = this.state.currentPoint;
-		//if(!layout.isSamePos(currentPos, nearestPos)) {
-			//console.log('[ UPDATE POINT ]: ' + nearestPos);
+		let nPos = layout.getNearestGroupPoint(pos);
 		let point = document.getElementById('groupPoint');
-		this.assignAttr(point, {
-			cx: nearestPos.x,
-			cy: nearestPos.y
+		painter.assignAttr(point, {
+			cx: nPos.x,
+			cy: nPos.y
 		});
-		this.state.currentGroupPoint.x = nearestPos.x;
-		this.state.currentGroupPoint.y = nearestPos.y;
-		//}
-	}
-	createShape(type, attributes) {
-		let shape = document.createElementNS('http://www.w3.org/2000/svg', type);
-		for(let key in attributes) {
-			shape.setAttribute(key, attributes[key]);
-		}
-		return shape;
-	}
-	createUse(type, attributes) {
-		let use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
-		use.setAttributeNS('http://www.w3.org/1999/xlink','xlink:href','#' + type);
-		for(let key in attributes) {
-			use.setAttribute(key, attributes[key]);
-		}
-		return use;
-	}
-	assignAttr(o, a) {
-		for(let i in a) {
-			o.setAttributeNS(null, i, a[i])
-		}
+		this.state.currentGroupPoint.x = nPos.x;
+		this.state.currentGroupPoint.y = nPos.y;
 	}
 }
 

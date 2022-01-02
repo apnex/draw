@@ -96,6 +96,22 @@ class Painter {
 		console.log('[ PAINTER ]: icon.delete[ ' + id + ' ]');
 		return this.delete(id);
 	}
+	createCircle(id, spec, groupId) {
+		console.log('[ PAINTER ]: circle.create[ ' + id + ' ] POS[ ' + spec.cx + ':' + spec.cy + ' ] RADIUS[ ' + spec.r + ' ]');
+		let group = document.getElementById(groupId);
+		// test
+		if(!id) {
+			id = 'missing';
+		}
+		group.appendChild(this.renderShape('circle', {
+			"id"	: id,
+			"class"	: spec.class,
+			"r"	: spec.r,
+			"cx"	: spec.cx,
+			"cy"	: spec.cy
+		}));
+		return id;
+	}
 	renderShape(type, a) {
 		let element = document.createElementNS('http://www.w3.org/2000/svg', type);
 		return this.assignAttr(element, a);
@@ -116,6 +132,18 @@ class Painter {
 // create instance
 const createInstance = function(container) {
 	const instance = new Painter(container);
+	instance.rect = {
+		center: (id, pos) => {
+			let element = document.getElementById(id);
+			if(element) {
+				instance.assignAttr(element, {
+					"x": pos.x - (element.getAttribute("width") / 2),
+					"y": pos.y - (element.getAttribute("height") / 2)
+				})
+				return id;
+			}
+		}
+	};
 	return instance;
 };
 
