@@ -108,21 +108,18 @@ class Engineer {
 		}, 'links');
 	}
 	updateLink(id, pos) {
-		let line = document.getElementById(id);
-		this.assignAttr(line, {
-			x2: pos.x,
-			y2: pos.y
+		return painter.updateLine(id, {
+			"x2"	: pos.x,
+			"y2"	: pos.y
 		});
 	}
 	deleteLink(id) {
-		let groups = this.state.groups;
-		groups.links.removeChild(document.getElementById(id));
+		return painter.deleteLine(id);
 	}
 	drawZone(spec) {
 		console.log('[ DRAW ]: drawZone: ID[' + spec.id + '] POS1[ ' + spec.pos1.x + ':' + spec.pos1.y + ' ] POS2[ ' + spec.pos2.x + ':' + spec.pos2.y + ' ]');
 		let box = this.resolveBox(spec.pos1, spec.pos2);
 		// normalise box points - move to painter?
-		// update resolveBox to return 3 points and 2 values - topLeft, center, bottomRight, height, width
 		return painter.createRect(spec.id, {
 			"class"		: spec.class,
 			"x"		: box.x,
@@ -133,8 +130,6 @@ class Engineer {
 	}
 	addZone(spec) { // create and draw zone
 		let model = this.state.model;
-
-		// instance within model
 		let id = model.createZone(spec.pos1, spec.pos2, spec.type, spec.tags);
 
 		// render to canvas
@@ -147,7 +142,6 @@ class Engineer {
 		return id;
 	}
 	resolveBox(pos1, pos2) { // move to painter?
-		// work out size + shift
 		let height = Math.abs(pos2.y - pos1.y);
 		let width = Math.abs(pos2.x - pos1.x);
 		let xshift = (pos1.x > pos2.x) ? width : 0;
@@ -159,9 +153,13 @@ class Engineer {
 		};
 	}
 	updateZone(id, pos1, pos2) {
-		let zone = document.getElementById(id);
-		this.assignAttr(zone, this.resolveBox(pos1, pos2));
-		return zone;
+		let box = this.resolveBox(pos1, pos2);
+		return painter.updateRect(id, {
+			"x"		: box.x,
+			"y"		: box.y,
+			"width"		: box.width,
+			"height"	: box.height
+		});
 	}
 	commitZone(id, pos1, pos2) { // rework - move to model.validZone() ?
 		this.deleteZone(id); // remove temp liveZone
@@ -182,10 +180,7 @@ class Engineer {
 	}
 	deleteZone(id) {
 		let model = this.state.model;
-		let groups = this.state.groups;
-		let zone = document.getElementById(id);
-		if(zone) { // validate zone exists before delete
-			groups.zones.removeChild(zone);
+		if(painter.deleteRect(id)) {
 			return model.deleteZone(id);
 		}
 	}
@@ -206,11 +201,15 @@ class Engineer {
 		let links = this.state.model.links;
 		if(nodes[id]) {
 			// render updated node
-			let node = document.getElementById(id);
-			this.assignAttr(node, {
-				x: pos.x,
-				y: pos.y
+			painter.updateIcon(id, {
+				"x"	: pos.x,
+				"y"	: pos.y
 			});
+			//let node = document.getElementById(id);
+			//this.assignAttr(node, {
+			//	x: pos.x,
+			//	y: pos.y
+			//});
 			// render update links on node
 			for(let linkId in nodes[id].links) {
 				let link = document.getElementById(linkId);
@@ -241,13 +240,13 @@ class Engineer {
 	}
 	deleteNode(id) {
 		let model = this.state.model;
-		let groups = this.state.groups;
 		let nodes = model.nodes;
-		Object.keys(nodes[id].links).forEach((link) => {
-			groups.links.removeChild(document.getElementById(link));
+		Object.keys(nodes[id].links).forEach((linkId) => {
+			painter.deleteLine(linkId);
 		});
-		groups.nodes.removeChild(document.getElementById(id));
-		model.deleteNode(id);
+		if(model.deleteNode(id)) {
+			return painter.deleteIcon(id);
+		}
 	}
 	showGrid() {
 		let groups = this.state.groups;

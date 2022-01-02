@@ -229,12 +229,10 @@ function mousedown(event) {
 	if(event.shiftKey) {
 		if(event.altKey) {
 			if(activeZone) { // handle no zone active
-				console.log('[ LAYER-01 ] - Delete Zone');
 				draw.deleteZone(activeZone.id);
 			}
 		} else {
 			if(currentButton == 0) { // left-click
-				console.log('[ LAYER-01 ] - Create Group');
 		                // create placeholder 'liveZone'
 				// need to remove need for zonePos1 global variable
 				zonePos1 = grid.getNearestGroupPoint({
@@ -306,14 +304,11 @@ function mousemove(event) {
 	};
 	if(selectedNode) {
 		// need to implement a filter here to check NODE ACTION before update!!! to save cycles
-
 		//if(nodes[selectedNode].tag == "dock") { // check if dock
 			// do dock things
 		//} else { // not the dock
-			console.log('UPDATE: DOCK TEST');
 			if(currentButton == 0) { // left button
-				// draw.updateLine
-				if(currentLine) { // mode to updateLink
+				if(currentLine) {
 					draw.updateLink(currentLine, currentPos);
 				}
 			}

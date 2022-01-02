@@ -14,12 +14,15 @@ class Painter {
 		let screen = root.getBoundingClientRect();
 		console.log('[ PAINTER ]: container [ ' + container + ' ] screen { ' + screen.width + ':' + screen.height + ' }');
 	}
+	get(id) {
+		// returns the normalised JSON definition of element
+	}
 	getElement(id) {
 		let element = document.getElementById(id);
 		return element;
 	}
 	createLine(id, spec, groupId) {
-		console.log('[ PAINTER ]: createLine[ ' + id + ' ]: SRC[ ' + spec.x1 + ':' + spec.y1 + ' ] DST[ ' + spec.x2 + ':' + spec.y2 + ' ]');
+		console.log('[ PAINTER ]: line.create[ ' + id + ' ]: SRC[ ' + spec.x1 + ':' + spec.y1 + ' ] DST[ ' + spec.x2 + ':' + spec.y2 + ' ]');
 		let group = document.getElementById(groupId);
 		group.appendChild(this.renderShape('line', {
 			"id"		: id,
@@ -32,20 +35,14 @@ class Painter {
 		return id;
 	}
 	updateLine(id, spec) {
-		let element = document.getElementById(id);
-		this.assignAttr(element, spec);
-		return id;
+		return this.update(id, spec);
 	}
 	deleteLine(id) {
-		let element = document.getElementById(id);
-		let parent = element.parentNode;
-		if(element && parent) {
-			parent.removeChild(element);
-			return id;
-		}
+		console.log('[ PAINTER ]: line.delete[ ' + id + ' ]');
+		return this.delete(id);
 	}
 	createRect(id, spec, groupId) {
-		console.log('[ PAINTER ]: createRect[' + id + ' ] POS[ ' + spec.x + ':' + spec.y + ' ] WIDTH[ ' + spec.width + ' ] HEIGHT[ ' + spec.height + ' ]');
+		console.log('[ PAINTER ]: rect.create[ ' + id + ' ] POS[ ' + spec.x + ':' + spec.y + ' ] WIDTH[ ' + spec.width + ' ] HEIGHT[ ' + spec.height + ' ]');
 		let group = document.getElementById(groupId);
 		group.appendChild(this.renderShape('rect', {
 			"id"		: id,
@@ -58,20 +55,31 @@ class Painter {
 		return id;
 	}
 	updateRect(id, spec) {
-		let element = document.getElementById(id);
-		this.assignAttr(element, spec);
-		return id;
+		return this.update(id, spec);
 	}
 	deleteRect(id) {
+		console.log('[ PAINTER ]: rect.delete[ ' + id + ' ]');
+		return this.delete(id);
+	}
+	update(id, spec) {
 		let element = document.getElementById(id);
-		let parent = element.parentNode;
-		if(element && parent) {
-			parent.removeChild(element);
+		if(element) {
+			this.assignAttr(element, spec);
 			return id;
 		}
 	}
+	delete(id) {
+		let element = document.getElementById(id);
+		if(element) {
+			let parent = element.parentNode;
+			if(parent) {
+				parent.removeChild(element);
+				return id;
+			}
+		}
+	}
 	createIcon(id, spec, groupId) {
-		console.log('[ PAINTER ]: createIcon[' + id + ' ] POS[ ' + spec.x + ':' + spec.y + ' ]');
+		console.log('[ PAINTER ]: icon.create[ ' + id + ' ] POS[ ' + spec.x + ':' + spec.y + ' ]');
 		let group = document.getElementById(groupId);
 		group.appendChild(this.renderUse(spec.type, {
 			"id"	: id,
@@ -82,17 +90,11 @@ class Painter {
 		return id;
 	}
 	updateIcon(id, spec) {
-		let element = document.getElementById(id);
-		this.assignAttr(element, spec);
-		return id;
+		return this.update(id, spec);
 	}
 	deleteIcon(id) {
-		let element = document.getElementById(id);
-		let parent = element.parentNode;
-		if(element && parent) {
-			parent.removeChild(element);
-			return id;
-		}
+		console.log('[ PAINTER ]: icon.delete[ ' + id + ' ]');
+		return this.delete(id);
 	}
 	renderShape(type, a) {
 		let element = document.createElementNS('http://www.w3.org/2000/svg', type);
@@ -103,9 +105,9 @@ class Painter {
 		element.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', '#' + type);
 		return this.assignAttr(element, a);
 	}
-	assignAttr(o, a) {
+	assignAttr(o, a, ns = null) {
 		for(let key in a) {
-			o.setAttributeNS(null, key, a[key])
+			o.setAttributeNS(ns, key, a[key])
 		}
 		return o;
 	}
