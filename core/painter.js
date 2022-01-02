@@ -97,9 +97,8 @@ class Painter {
 		return this.delete(id);
 	}
 	createCircle(id, spec, groupId) {
-		console.log('[ PAINTER ]: circle.create[ ' + id + ' ] POS[ ' + spec.cx + ':' + spec.cy + ' ] RADIUS[ ' + spec.r + ' ]');
+		//console.log('[ PAINTER ]: circle.create[ ' + id + ' ] POS[ ' + spec.cx + ':' + spec.cy + ' ] RADIUS[ ' + spec.r + ' ]');
 		let group = document.getElementById(groupId);
-		// test
 		if(!id) {
 			id = 'missing';
 		}
