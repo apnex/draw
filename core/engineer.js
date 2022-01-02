@@ -200,43 +200,33 @@ class Engineer {
 		let nodes = this.state.model.nodes;
 		let links = this.state.model.links;
 		if(nodes[id]) {
-			// render updated node
+			// render update icon
 			painter.updateIcon(id, {
 				"x"	: pos.x,
 				"y"	: pos.y
 			});
-			//let node = document.getElementById(id);
-			//this.assignAttr(node, {
-			//	x: pos.x,
-			//	y: pos.y
-			//});
-			// render update links on node
-			for(let linkId in nodes[id].links) {
-				let link = document.getElementById(linkId);
-				if(links[linkId].src == id) {
-					this.assignAttr(link, {
-						x1: pos.x,
-						y1: pos.y
+			// render update links on icon
+			Object.values(nodes[id].links).forEach((link) => {
+				if(link.src == id) {
+					painter.updateLine(link.id, {
+						"x1"	: pos.x,
+						"y1"	: pos.y
 					});
 				} else {
-					this.assignAttr(link, {
-						x2: pos.x,
-						y2: pos.y
+					painter.updateLine(link.id, {
+						"x2"	: pos.x,
+						"y2"	: pos.y
 					});
 				}
-			}
+			});
+			return id;
 		}
 	}
-	commitNode(id, pos) {
-		// commits node to model
+	commitNode(id, pos) { // validate cell location?
 		let model = this.state.model;
-		/* Node Validation before commit? Check if 2 nodes collide perhaps - update 'layout' to include a 'stack' for multiple nodes on a 'cell'
-		if(box.getAttribute("height") == 0 || box.getAttribute("width") == 0) { // invalid so delete
-			this.deleteBox(id);
+		if(this.updateNode(id, pos)) {
+			return model.updateNode(id, pos);
 		}
-		*/
-		this.updateNode(id, pos);
-		model.updateNode(id, pos);
 	}
 	deleteNode(id) {
 		let model = this.state.model;
@@ -270,58 +260,50 @@ class Engineer {
 	createPoint(pos) { // change to show/hide mechanism - turn into a managed widget with self.functions()
 		let root = document.getElementById('container');
 		let rect = root.getBoundingClientRect();
-		let groups = this.state.groups;
 		let layout = this.state.layout;
 		console.log('[ CREATE ]: point { ' + rect.width + ':' + rect.height + ' }');
 		this.state.currentPoint = {
 			x: pos.x,
 			y: pos.y
 		};
-		groups.point.appendChild(this.createShape('line', {
-			"id"		: 'vline',
-			"x1"		: pos.x,
-			"y1"		: 0,
-			"x2"		: pos.x,
-			"y2"		: rect.height,
-			"class"		: 'gridline'
-		}));
-		groups.point.appendChild(this.createShape('line', {
-			"id"		: 'hline',
-			"x1"		: 0,
-			"y1"		: pos.y,
-			"x2"		: rect.width,
-			"y2"		: pos.y,
-			"class"		: 'gridline'
-		}));
-		groups.point.appendChild(this.createShape('rect', {
-			"id"		: 'box',
+		painter.createLine('vline', {
+			"class"	: 'gridline',
+			"x1"	: pos.x,
+			"y1"	: 0,
+			"x2"	: pos.x,
+			"y2"	: rect.height
+		}, 'point');
+		painter.createLine('hline', {
+			"class"	: 'gridline',
+			"x1"	: 0,
+			"y1"	: pos.y,
+			"x2"	: rect.width,
+			"y2"	: pos.y
+		}, 'point');
+		painter.createRect('box', {
+			"class"		: 'box',
 			"x"		: pos.x - layout.offset.x,
 			"y"		: pos.y - layout.offset.y,
 			"width"		: layout.gap.x,
-			"height"	: layout.gap.y,
-			"class"		: 'box'
-		}));
+			"height"	: layout.gap.y
+		}, 'point');
 	}
 	updatePoint(pos) {
 		let layout = this.state.layout;
 		let nearestPos = layout.getNearestPoint(pos);
 		let currentPos = this.state.currentPoint;
 		if(!layout.isSamePos(currentPos, nearestPos)) {
-			//console.log('[ UPDATE POINT ]: ' + nearestPos);
-			let box = document.getElementById('box');
-			this.assignAttr(box, {
-				x: pos.x - (box.getAttribute("width") / 2),
-				y: pos.y - (box.getAttribute("height") / 2)
+			painter.updateRect('box', {
+				"x": pos.x - (box.getAttribute("width") / 2),
+				"y": pos.y - (box.getAttribute("height") / 2)
 			});
-			let vline = document.getElementById('vline');
-			this.assignAttr(vline, {
-				x1: pos.x,
-				x2: pos.x
+			painter.updateLine('vline', {
+				"x1"	: pos.x,
+				"x2"	: pos.x
 			});
-			let hline = document.getElementById('hline');
-			this.assignAttr(hline, {
-				y1: pos.y,
-				y2: pos.y
+			painter.updateLine('hline', {
+				"y1"	: pos.y,
+				"y2"	: pos.y
 			});
 			this.state.currentPoint.x = nearestPos.x;
 			this.state.currentPoint.y = nearestPos.y;
