@@ -1,10 +1,12 @@
 // main class
 class Loader {
-	constructor() {
+	constructor(engineer) {
 		console.log('INIT new { LOADER }');
-		this.state = {};
+		this.state = {
+			engineer
+		};
 	}
-	importDiagram(draw, spec) {
+	importDiagram(spec, engineer = this.state.engineer) {
 		// build node index
 		let nodes = spec.nodes.reduce((nodes, node) => {
 			nodes[node.id] = node;
@@ -17,24 +19,24 @@ class Loader {
 			let srcNode = nodes[link.src];
 			let dstNode = nodes[link.dst];
 			if(!nodeCache[srcNode.id]) {
-				nodeCache[srcNode.id] = draw.createNode(srcNode.type, { x: srcNode.x, y: srcNode.y }, srcNode.tag);
+				nodeCache[srcNode.id] = engineer.createNode(srcNode.type, { x: srcNode.x, y: srcNode.y }, srcNode.tag);
 			}
 			if(!nodeCache[dstNode.id]) {
-				nodeCache[dstNode.id] = draw.createNode(dstNode.type, { x: dstNode.x, y: dstNode.y }, dstNode.tag);
+				nodeCache[dstNode.id] = engineer.createNode(dstNode.type, { x: dstNode.x, y: dstNode.y }, dstNode.tag);
 			}
-			draw.addLink(nodeCache[srcNode.id], nodeCache[dstNode.id]);
+			engineer.addLink(nodeCache[srcNode.id], nodeCache[dstNode.id]);
 		});
 
 		// create remaining nodes
 		spec.nodes.forEach((node) => {
 			if(!nodeCache[node.id]) {
-				nodeCache[node.id] = draw.createNode(node.type, { x: node.x, y: node.y }, node.tag);
+				nodeCache[node.id] = engineer.createNode(node.type, { x: node.x, y: node.y }, node.tag);
 			}
 		});
 
 		// create zones
 		spec.zones.forEach((zone) => {
-			draw.addZone({
+			engineer.addZone({
 				type	: zone.type,
 				class	: 'zone',
 				pos1	: zone.pos1,
@@ -57,7 +59,7 @@ class Loader {
 		dLink.click();
 		document.body.removeChild(dLink);
 	}
-	exportModel(modelState) {
+	exportModel(modelState = this.state.engineer.model.state) {
 		let newModel = {
 			nodes: [],
 			zones: [],
@@ -99,10 +101,10 @@ class Loader {
 }
 
 // create instance
-const createInstance = function() {
-	const instance = new Loader();
+const createInstance = function(engineer) {
+	const instance = new Loader(engineer);
 	return instance;
 };
 
 // export
-export default createInstance();
+export default createInstance;

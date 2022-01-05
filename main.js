@@ -203,10 +203,27 @@ async function init() {
 	});
 
 	// test diagram load
+	/*
 	console.log('Loading Model [ /examples/test2.json');
 	let newModel = await ky.get('/examples/test2.json').json();
-	console.log('Loading Model [ /examples/test2.json - DONE!');
-	draw.importDiagram(newModel);
+	*/
+	loadDiagram();
+}
+
+async function saveDiagram() {
+	// test diagram save
+	let newModel = draw.loader.exportModel();
+	console.log('EXPORTED MODEL');
+	console.log('Saving Model [ /examples/diagram.json ]');
+	let result = await ky.post('http://localhost:4040/save/diagram.json', {
+		json: newModel
+	}).json();
+}
+async function loadDiagram() {
+	// test diagram load
+	console.log('Loading Model [ /examples/diagram.json ]');
+	let newModel = await ky.get('http://localhost:4040/load/diagram.json').json();
+	draw.loader.importDiagram(newModel);
 }
 
 // mousedown
@@ -263,7 +280,7 @@ function mousedown(event) {
 				}
 				if(currentButton == 0) { // dock - ?? save json
 					console.log('[ DOCK ]: saving json string');
-					draw.exportDiagram();
+					saveDiagram();
 				}
 			} else {
 				if(currentButton == 0) { // start line drag

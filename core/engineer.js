@@ -7,8 +7,8 @@ Import/Export is handled as an extension via loader.js
 
 // main class
 import contextFactory from './context.js';
-import loader from './loader.js';
 import painterFactory from './painter.js';
+import loaderFactory from './loader.js';
 const painter = painterFactory('canvas');
 
 class Engineer {
@@ -65,12 +65,6 @@ class Engineer {
 		// create and hide group point
 		// move to layer object
 		this.createGroupPoint({x: 0, y: 0});
-	}
-	importDiagram(spec) {
-		loader.importDiagram(this, spec);
-	}
-	exportDiagram(fileName = 'diagram-save.js') {
-		loader.exportDiagram(this.state.model.state, fileName);
 	}
 	addLink(src, dst) {
 		let model = this.state.model;
@@ -350,8 +344,17 @@ const createInstance = function(model, layout, iconset) {
 	instance.layout = instance.state.layout;
 	instance.groups = instance.state.groups;
 	instance.iconset = instance.state.iconset;
+	instance.loader = loaderFactory(instance);
 	return instance;
-};
+	/*
+	importDiagram(spec) {
+		loader.importDiagram(this, spec);
+	}
+	exportDiagram(fileName = 'diagram-save.js') {
+		loader.exportDiagram(this.state.model.state, fileName);
+	}
+	*/
+}
 
 // export
 export default createInstance;
